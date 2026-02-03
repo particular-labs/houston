@@ -55,6 +55,7 @@ pub fn run() {
             ai_tools_cmds::get_ai_tools,
             ai_tools_cmds::refresh_ai_tools,
             ai_tools_cmds::update_ai_tool,
+            ai_tools_cmds::get_tool_mcp_servers,
             // Stats
             stats_cmds::get_app_stats,
         ])

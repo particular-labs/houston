@@ -222,6 +222,8 @@ export const commands = {
   refreshAiTools: () => invoke<AiToolsReport>("refresh_ai_tools"),
   updateAiTool: (toolName: string) =>
     invoke<FixResult>("update_ai_tool", { toolName }),
+  getToolMcpServers: (toolName: string) =>
+    invoke<McpServer[]>("get_tool_mcp_servers", { toolName }),
 
   // Diagnostics
   getDiagnostics: () => invoke<DiagnosticReport>("get_diagnostics"),

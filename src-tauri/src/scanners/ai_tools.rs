@@ -641,6 +641,85 @@ pub fn get_update_command(tool_name: &str) -> Option<(String, Vec<String>)> {
     }
 }
 
+// --- MCP Server Discovery ---
+
+struct McpConfigSpec {
+    config_path: String,
+    json_key: &'static str,
+}
+
+fn get_mcp_config_spec(tool_name: &str) -> Option<McpConfigSpec> {
+    let home = dirs::home_dir()?;
+    let (relative_path, json_key) = match tool_name {
+        "Claude Code" => (".claude/settings.json", "mcpServers"),
+        "Claude Desktop" => (
+            "Library/Application Support/Claude/claude_desktop_config.json",
+            "mcpServers",
+        ),
+        "Cursor" => (".cursor/mcp.json", "mcpServers"),
+        "Windsurf" => (".codeium/windsurf/mcp_config.json", "mcpServers"),
+        "Zed" => (".config/zed/settings.json", "context_servers"),
+        "VS Code" => (".vscode/mcp.json", "servers"),
+        _ => return None,
+    };
+    Some(McpConfigSpec {
+        config_path: home.join(relative_path).to_string_lossy().to_string(),
+        json_key,
+    })
+}
+
+pub fn scan_mcp_servers(tool_name: &str) -> Vec<crate::scanners::claude::McpServer> {
+    let spec = match get_mcp_config_spec(tool_name) {
+        Some(s) => s,
+        None => return Vec::new(),
+    };
+
+    let path = std::path::Path::new(&spec.config_path);
+    if !path.exists() {
+        return Vec::new();
+    }
+
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    let json: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+
+    let servers = match json.get(spec.json_key).and_then(|s| s.as_object()) {
+        Some(s) => s,
+        None => return Vec::new(),
+    };
+
+    servers
+        .iter()
+        .map(|(name, config)| {
+            let command = config
+                .get("command")
+                .and_then(|c| c.as_str())
+                .unwrap_or("")
+                .to_string();
+            let args = config
+                .get("args")
+                .and_then(|a| a.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            crate::scanners::claude::McpServer {
+                name: name.clone(),
+                command,
+                args,
+            }
+        })
+        .collect()
+}
+
 pub fn scan() -> AiToolsReport {
     let registry = tool_registry();
     let home = std::env::var("HOME").unwrap_or_default();

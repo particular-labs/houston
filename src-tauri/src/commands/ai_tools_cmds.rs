@@ -32,6 +32,11 @@ pub fn refresh_ai_tools(state: State<'_, AppState>) -> ai_tools::AiToolsReport {
 }
 
 #[tauri::command]
+pub fn get_tool_mcp_servers(tool_name: String) -> Vec<crate::scanners::claude::McpServer> {
+    crate::scanners::ai_tools::scan_mcp_servers(&tool_name)
+}
+
+#[tauri::command]
 pub fn update_ai_tool(
     tool_name: String,
     state: State<'_, AppState>,
