@@ -11,6 +11,7 @@ pub struct ProjectInfo {
     pub package_manager: String,
     pub description: String,
     pub has_git: bool,
+    pub group: String,
 }
 
 struct ProjectMarker {
@@ -237,9 +238,6 @@ fn get_description(path: &Path) -> String {
     String::new()
 }
 
-/// Maximum depth to recurse when scanning for projects.
-const MAX_SCAN_DEPTH: usize = 3;
-
 /// Directories that should never be descended into.
 const SKIP_DIRS: &[&str] = &[
     "node_modules",
@@ -255,11 +253,39 @@ const SKIP_DIRS: &[&str] = &[
     ".venv",
 ];
 
-fn scan_recursive(dir: &Path, depth: usize, projects: &mut Vec<ProjectInfo>) {
-    if depth > MAX_SCAN_DEPTH {
-        return;
-    }
+fn is_project_dir(path: &Path) -> bool {
+    MARKERS.iter().any(|m| path.join(m.file).exists())
+}
 
+fn make_project(path: &Path, group: &str) -> Option<ProjectInfo> {
+    for marker in MARKERS {
+        if path.join(marker.file).exists() {
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let framework = (marker.framework_detector)(path);
+            let package_manager = detect_package_manager(path);
+            let description = get_description(path);
+            let has_git = path.join(".git").exists();
+
+            return Some(ProjectInfo {
+                name,
+                path: path.to_string_lossy().to_string(),
+                project_type: marker.project_type.to_string(),
+                framework,
+                package_manager,
+                description,
+                has_git,
+                group: group.to_string(),
+            });
+        }
+    }
+    None
+}
+
+/// Scan immediate children of a group folder for projects.
+fn scan_group(dir: &Path, group_name: &str, projects: &mut Vec<ProjectInfo>) {
     let entries = match fs::read_dir(dir) {
         Ok(e) => e,
         Err(_) => return,
@@ -270,41 +296,13 @@ fn scan_recursive(dir: &Path, depth: usize, projects: &mut Vec<ProjectInfo>) {
         if !path.is_dir() {
             continue;
         }
-
         let dir_name = entry.file_name().to_string_lossy().to_string();
-
-        // Skip hidden directories and known non-project dirs
         if dir_name.starts_with('.') || SKIP_DIRS.contains(&dir_name.as_str()) {
             continue;
         }
 
-        // Check for project markers
-        let mut is_project = false;
-        for marker in MARKERS {
-            if path.join(marker.file).exists() {
-                let name = dir_name.clone();
-                let framework = (marker.framework_detector)(&path);
-                let package_manager = detect_package_manager(&path);
-                let description = get_description(&path);
-                let has_git = path.join(".git").exists();
-
-                projects.push(ProjectInfo {
-                    name,
-                    path: path.to_string_lossy().to_string(),
-                    project_type: marker.project_type.to_string(),
-                    framework,
-                    package_manager,
-                    description,
-                    has_git,
-                });
-                is_project = true;
-                break; // Only match first marker
-            }
-        }
-
-        // If this directory isn't itself a project, recurse into it
-        if !is_project {
-            scan_recursive(&path, depth + 1, projects);
+        if let Some(project) = make_project(&path, group_name) {
+            projects.push(project);
         }
     }
 }
@@ -317,8 +315,38 @@ pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
         return projects;
     }
 
-    scan_recursive(workspace, 0, &mut projects);
+    let entries = match fs::read_dir(workspace) {
+        Ok(e) => e,
+        Err(_) => return projects,
+    };
 
-    projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let dir_name = entry.file_name().to_string_lossy().to_string();
+        if dir_name.starts_with('.') || SKIP_DIRS.contains(&dir_name.as_str()) {
+            continue;
+        }
+
+        if is_project_dir(&path) {
+            // Top-level project — no group
+            if let Some(project) = make_project(&path, "") {
+                projects.push(project);
+            }
+        } else {
+            // Not a project — treat as a group folder, scan its children
+            scan_group(&path, &dir_name, &mut projects);
+        }
+    }
+
+    projects.sort_by(|a, b| {
+        a.group
+            .to_lowercase()
+            .cmp(&b.group.to_lowercase())
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
     projects
 }

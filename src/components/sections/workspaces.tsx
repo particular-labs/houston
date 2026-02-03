@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import {
   FolderPlus,
   FolderX,
@@ -10,6 +10,7 @@ import {
   Code2,
   Sparkles,
   FolderOpen,
+  Folder,
 } from "lucide-react";
 import {
   useProjects,
@@ -18,7 +19,7 @@ import {
   useWorkspacePaths,
 } from "@/hooks/use-workspaces";
 import { useGitStatus } from "@/hooks/use-git-status";
-import { commands, type ProjectInfo, type GitStatus } from "@/lib/commands";
+import { commands, type ProjectInfo } from "@/lib/commands";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusDot } from "@/components/shared/status-dot";
@@ -62,13 +63,9 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
             <GitBranch className="h-3 w-3" />
             <span className="font-mono">{git.branch}</span>
           </div>
-          {git.is_dirty && (
-            <StatusDot status="warning" />
-          )}
+          {git.is_dirty && <StatusDot status="warning" />}
           {git.modified_count > 0 && (
-            <span className="text-warning">
-              {git.modified_count}M
-            </span>
+            <span className="text-warning">{git.modified_count}M</span>
           )}
           {git.untracked_count > 0 && (
             <span className="text-muted-foreground">
@@ -76,9 +73,7 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
             </span>
           )}
           {git.staged_count > 0 && (
-            <span className="text-success">
-              {git.staged_count}S
-            </span>
+            <span className="text-success">{git.staged_count}S</span>
           )}
           {git.ahead > 0 && (
             <span className="flex items-center gap-0.5 text-info">
@@ -138,12 +133,53 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
   );
 }
 
+interface ProjectGroup {
+  name: string;
+  projects: ProjectInfo[];
+}
+
+function useGroupedProjects(projects: ProjectInfo[] | undefined): ProjectGroup[] {
+  return useMemo(() => {
+    if (!projects) return [];
+
+    const groupMap = new Map<string, ProjectInfo[]>();
+
+    for (const project of projects) {
+      const key = project.group || "";
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      groupMap.get(key)!.push(project);
+    }
+
+    const groups: ProjectGroup[] = [];
+
+    // Top-level projects first (empty group)
+    const topLevel = groupMap.get("");
+    if (topLevel && topLevel.length > 0) {
+      groups.push({ name: "", projects: topLevel });
+    }
+
+    // Then named groups, sorted alphabetically
+    const sortedKeys = Array.from(groupMap.keys())
+      .filter((k) => k !== "")
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+    for (const key of sortedKeys) {
+      groups.push({ name: key, projects: groupMap.get(key)! });
+    }
+
+    return groups;
+  }, [projects]);
+}
+
 export function WorkspacesSection() {
   const { data: workspacePaths } = useWorkspacePaths();
   const { data: projects, isLoading, isFetching } = useProjects();
   const addWorkspace = useAddWorkspace();
   const removeWorkspace = useRemoveWorkspace();
   const queryClient = useQueryClient();
+  const groups = useGroupedProjects(projects);
 
   const handleAddWorkspace = async () => {
     const selected = await open({
@@ -200,7 +236,7 @@ export function WorkspacesSection() {
         </div>
       )}
 
-      {/* Project grid */}
+      {/* Project groups */}
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4">
           <CardSkeleton />
@@ -208,10 +244,32 @@ export function WorkspacesSection() {
           <CardSkeleton />
           <CardSkeleton />
         </div>
-      ) : projects && projects.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4">
-          {projects.map((project) => (
-            <ProjectCard key={project.path} project={project} />
+      ) : groups.length > 0 ? (
+        <div className="space-y-6">
+          {groups.map((group) => (
+            <div key={group.name || "__root__"}>
+              {group.name ? (
+                <div className="mb-3 flex items-center gap-2">
+                  <Folder className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">{group.name}</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {group.projects.length} project
+                    {group.projects.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              ) : groups.length > 1 ? (
+                <div className="mb-3">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Projects
+                  </h3>
+                </div>
+              ) : null}
+              <div className="grid grid-cols-2 gap-4">
+                {group.projects.map((project) => (
+                  <ProjectCard key={project.path} project={project} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : (

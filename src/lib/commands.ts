@@ -46,6 +46,7 @@ export interface ProjectInfo {
   package_manager: string;
   description: string;
   has_git: boolean;
+  group: string;
 }
 
 export interface GitStatus {
