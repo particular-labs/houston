@@ -206,15 +206,28 @@ pub fn scan() -> Vec<LanguageInfo> {
                 .args(spec.version_args)
                 .output();
 
-            let version = match output {
-                Ok(o) => {
+            let (installed, version) = match output {
+                Ok(o) if o.status.success() => {
                     let stdout = String::from_utf8_lossy(&o.stdout).to_string();
                     let stderr = String::from_utf8_lossy(&o.stderr).to_string();
                     let raw = if stdout.trim().is_empty() { &stderr } else { &stdout };
-                    (spec.version_parser)(raw.trim())
+                    let ver = (spec.version_parser)(raw.trim());
+                    (true, ver)
                 }
-                Err(_) => "unknown".to_string(),
+                _ => (false, String::new()),
             };
+
+            if !installed {
+                results.push(LanguageInfo {
+                    name: spec.name.to_string(),
+                    version: String::new(),
+                    binary_path: String::new(),
+                    manager: String::new(),
+                    installed: false,
+                    icon: spec.icon.to_string(),
+                });
+                continue;
+            }
 
             let manager = (spec.manager_detector)(&binary_path);
 
