@@ -12,6 +12,7 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { CopyButton } from "@/components/shared/copy-button";
 import { CardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
+import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 
 function InfoRow({
   icon: Icon,
@@ -62,6 +63,8 @@ export function SystemSection() {
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ["system-info"] })}
         isRefreshing={isFetching}
       />
+
+      <DiagnosticsBanner categories={["brew"]} />
 
       <div className="grid grid-cols-2 gap-4">
         {/* OS & Hardware */}

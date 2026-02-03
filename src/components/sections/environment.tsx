@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
+import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 
 const categoryVariant: Record<string, "success" | "warning" | "error" | "info" | "neutral"> = {
   Path: "info",
@@ -52,6 +53,8 @@ export function EnvironmentSection() {
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ["env-vars"] })}
         isRefreshing={isFetching}
       />
+
+      <DiagnosticsBanner categories={["shell", "environment"]} />
 
       {/* Filters */}
       <div className="flex items-center gap-3">

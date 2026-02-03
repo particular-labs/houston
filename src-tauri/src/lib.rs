@@ -3,7 +3,8 @@ mod scanners;
 mod state;
 
 use commands::{
-    action_cmds, claude_cmds, env_cmds, language_cmds, package_cmds, system_cmds, workspace_cmds,
+    action_cmds, claude_cmds, diagnostics_cmds, env_cmds, language_cmds, package_cmds,
+    system_cmds, workspace_cmds,
 };
 use state::AppState;
 
@@ -44,6 +45,10 @@ pub fn run() {
             action_cmds::open_in_terminal,
             action_cmds::open_in_editor,
             action_cmds::open_claude_code,
+            // Diagnostics
+            diagnostics_cmds::get_diagnostics,
+            diagnostics_cmds::refresh_diagnostics,
+            diagnostics_cmds::run_diagnostic_fix,
         ])
         .setup(|app| {
             // Apply macOS vibrancy

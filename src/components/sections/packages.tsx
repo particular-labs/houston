@@ -7,6 +7,7 @@ import { CopyButton } from "@/components/shared/copy-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { TableSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
+import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 import type { PackageInfo } from "@/lib/commands";
 
 type Tab = "npm" | "brew" | "pip" | "cargo";
@@ -109,6 +110,8 @@ export function PackagesSection() {
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ["global-packages"] })}
         isRefreshing={isFetching}
       />
+
+      <DiagnosticsBanner categories={["packages"]} />
 
       {/* Tabs */}
       <div className="flex items-center gap-3">

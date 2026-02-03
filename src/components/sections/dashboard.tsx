@@ -3,6 +3,7 @@ import {
   Route,
   Code2,
   GitBranch,
+  Activity,
   AlertTriangle,
   CheckCircle2,
   ArrowUpRight,
@@ -11,6 +12,7 @@ import { useSystemInfo } from "@/hooks/use-system-info";
 import { usePathEntries } from "@/hooks/use-path-entries";
 import { useLanguages } from "@/hooks/use-languages";
 import { useAllGitStatuses } from "@/hooks/use-git-status";
+import { useDiagnostics } from "@/hooks/use-diagnostics";
 import { StatusDot } from "@/components/shared/status-dot";
 import { CardSkeleton } from "@/components/shared/skeleton";
 import { useNavigationStore } from "@/stores/navigation";
@@ -58,6 +60,7 @@ export function Dashboard() {
   const { data: paths, isLoading: pathsLoading } = usePathEntries();
   const { data: languages, isLoading: langsLoading } = useLanguages();
   const { data: gitStatuses } = useAllGitStatuses();
+  const { data: diagnosticsReport } = useDiagnostics();
   const setSection = useNavigationStore((s) => s.setActiveSection);
 
   const isLoading = systemLoading || pathsLoading || langsLoading;
@@ -71,7 +74,8 @@ export function Dashboard() {
             Overview of your development environment
           </p>
         </div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
+          <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
@@ -86,6 +90,9 @@ export function Dashboard() {
   const installedLangs = languages?.filter((l) => l.installed).length ?? 0;
   const dirtyRepos =
     gitStatuses?.filter((g) => g.is_dirty).length ?? 0;
+  const diagnosticCount = diagnosticsReport?.items.length ?? 0;
+  const hasErrors = diagnosticsReport?.items.some((i) => i.severity === "error") ?? false;
+  const hasWarnings = diagnosticsReport?.items.some((i) => i.severity === "warning") ?? false;
 
   return (
     <div className="space-y-6">
@@ -97,7 +104,7 @@ export function Dashboard() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <MetricCard
           icon={Monitor}
           label="System"
@@ -141,6 +148,18 @@ export function Dashboard() {
               : "All repos clean"
           }
           onClick={() => setSection("workspaces")}
+        />
+        <MetricCard
+          icon={Activity}
+          label="Health"
+          value={diagnosticCount}
+          status={hasErrors ? "error" : hasWarnings ? "warning" : "success"}
+          detail={
+            diagnosticCount === 0
+              ? "All systems healthy"
+              : `${diagnosticCount} issue${diagnosticCount !== 1 ? "s" : ""} found`
+          }
+          onClick={() => setSection("system")}
         />
       </div>
 

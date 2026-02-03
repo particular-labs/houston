@@ -1,4 +1,5 @@
 pub mod claude;
+pub mod diagnostics;
 pub mod environment;
 pub mod git;
 pub mod languages;

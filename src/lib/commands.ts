@@ -94,6 +94,29 @@ export interface ClaudeConfig {
   settings_summary: string[];
 }
 
+// Diagnostics types
+export interface DiagnosticItem {
+  id: string;
+  category: string;
+  severity: "error" | "warning" | "info" | "suggestion";
+  title: string;
+  description: string;
+  details: string | null;
+  fix_id: string | null;
+  fix_label: string | null;
+}
+
+export interface DiagnosticReport {
+  items: DiagnosticItem[];
+  scanned_at: string;
+}
+
+export interface FixResult {
+  success: boolean;
+  message: string;
+  output: string | null;
+}
+
 // Command wrappers
 export const commands = {
   // System
@@ -136,4 +159,11 @@ export const commands = {
   openInEditor: (path: string) => invoke<void>("open_in_editor", { path }),
   openClaudeCode: (path: string) =>
     invoke<void>("open_claude_code", { path }),
+
+  // Diagnostics
+  getDiagnostics: () => invoke<DiagnosticReport>("get_diagnostics"),
+  refreshDiagnostics: () =>
+    invoke<DiagnosticReport>("refresh_diagnostics"),
+  runDiagnosticFix: (fixId: string) =>
+    invoke<FixResult>("run_diagnostic_fix", { fixId }),
 };

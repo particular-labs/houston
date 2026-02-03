@@ -39,6 +39,7 @@ impl<T: Clone> ScanCache<T> {
 
 use crate::scanners::{
     claude::ClaudeConfig,
+    diagnostics::DiagnosticReport,
     environment::EnvVarInfo,
     git::GitStatus,
     languages::LanguageInfo,
@@ -58,6 +59,7 @@ pub struct AppState {
     pub git_cache: Mutex<ScanCache<Vec<GitStatus>>>,
     pub package_cache: Mutex<ScanCache<PackageList>>,
     pub claude_cache: Mutex<ScanCache<ClaudeConfig>>,
+    pub diagnostics_cache: Mutex<ScanCache<DiagnosticReport>>,
 }
 
 impl AppState {
@@ -72,6 +74,7 @@ impl AppState {
             git_cache: Mutex::new(ScanCache::new(30)),
             package_cache: Mutex::new(ScanCache::new(300)),
             claude_cache: Mutex::new(ScanCache::new(300)),
+            diagnostics_cache: Mutex::new(ScanCache::new(120)),
         }
     }
 }
