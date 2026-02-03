@@ -119,3 +119,49 @@ pub fn get_statuses(project_paths: &[String]) -> Vec<GitStatus> {
         .filter_map(|p| get_status(p))
         .collect()
 }
+
+/// For each git-enabled project path, detect worktrees. Returns a mapping from
+/// project path to the main worktree path (shared ID) for projects that have
+/// multiple worktrees.
+pub fn detect_worktree_groups(
+    project_paths: &[String],
+) -> std::collections::HashMap<String, String> {
+    let mut result = std::collections::HashMap::new();
+
+    for path in project_paths {
+        let output = Command::new("git")
+            .args(["worktree", "list", "--porcelain"])
+            .current_dir(path)
+            .output();
+
+        let output = match output {
+            Ok(o) if o.status.success() => o,
+            _ => continue,
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let worktree_paths: Vec<String> = stdout
+            .lines()
+            .filter_map(|line| line.strip_prefix("worktree "))
+            .map(|s| s.to_string())
+            .collect();
+
+        // Only relevant when there are multiple worktrees
+        if worktree_paths.len() > 1 {
+            let main_worktree = worktree_paths[0].clone();
+            // Map this project to its main worktree if it appears in the list
+            for wt in &worktree_paths {
+                if wt == path {
+                    result.insert(path.clone(), main_worktree.clone());
+                    break;
+                }
+            }
+            // If the exact path wasn't in the list, still map it
+            if !result.contains_key(path) {
+                result.insert(path.clone(), main_worktree);
+            }
+        }
+    }
+
+    result
+}
