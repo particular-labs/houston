@@ -23,6 +23,7 @@ const sectionShortcuts: Record<string, Section> = {
   "6": "workspaces",
   "7": "packages",
   "8": "tools",
+  "9": "settings",
 };
 
 function KeyboardShortcuts() {

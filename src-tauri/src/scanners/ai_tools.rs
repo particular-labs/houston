@@ -459,104 +459,117 @@ pub fn scan() -> AiToolsReport {
     let brew_outdated = brew_handle.join().unwrap_or_default();
     let gh_extensions = gh_handle.join().unwrap_or_default();
 
-    // Phase 2: Resolve each tool
-    let tools: Vec<AiToolInfo> = registry
+    // Phase 2: Resolve each tool in parallel
+    use std::sync::Arc;
+    let npm_outdated = Arc::new(npm_outdated);
+    let pip_outdated = Arc::new(pip_outdated);
+    let brew_outdated = Arc::new(brew_outdated);
+    let gh_extensions = Arc::new(gh_extensions);
+
+    let handles: Vec<_> = registry
         .into_iter()
         .map(|spec| {
-            // CLI detection
-            let binary_path = which_binary(spec.binary);
+            let home = home.clone();
+            let npm_outdated = Arc::clone(&npm_outdated);
+            let pip_outdated = Arc::clone(&pip_outdated);
+            let brew_outdated = Arc::clone(&brew_outdated);
+            let gh_extensions = Arc::clone(&gh_extensions);
+            std::thread::spawn(move || {
+                // CLI detection
+                let binary_path = which_binary(spec.binary);
 
-            // For GhExtension, check if the extension is installed
-            let is_gh_extension = matches!(spec.install_method, InstallMethod::GhExtension);
-            let gh_installed = if is_gh_extension {
-                gh_extensions.contains_key(spec.package_name)
-            } else {
-                false
-            };
+                // For GhExtension, check if the extension is installed
+                let is_gh_extension = matches!(spec.install_method, InstallMethod::GhExtension);
+                let gh_installed = if is_gh_extension {
+                    gh_extensions.contains_key(spec.package_name)
+                } else {
+                    false
+                };
 
-            let cli_found = binary_path.is_some() || gh_installed;
+                let cli_found = binary_path.is_some() || gh_installed;
 
-            let version = if is_gh_extension && gh_installed {
-                let v = gh_extensions.get(spec.package_name).cloned();
-                v.filter(|s| !s.is_empty())
-            } else if cli_found {
-                get_version(spec.binary)
-            } else {
-                None
-            };
+                let version = if is_gh_extension && gh_installed {
+                    let v = gh_extensions.get(spec.package_name).cloned();
+                    v.filter(|s| !s.is_empty())
+                } else if cli_found {
+                    get_version(spec.binary)
+                } else {
+                    None
+                };
 
-            // App detection
-            let app_path = spec.app_bundle.and_then(check_app_installed);
-            let app_installed = app_path.is_some();
-            let app_version = app_path.as_deref().and_then(get_app_version);
-            let app_name = spec.app_bundle.map(|b| b.to_string());
+                // App detection
+                let app_path = spec.app_bundle.and_then(check_app_installed);
+                let app_installed = app_path.is_some();
+                let app_version = app_path.as_deref().and_then(get_app_version);
+                let app_name = spec.app_bundle.map(|b| b.to_string());
 
-            // installed = depends on tool_type
-            let installed = match spec.tool_type {
-                ToolType::Cli => cli_found,
-                ToolType::App => app_installed,
-                ToolType::Both => cli_found || app_installed,
-            };
+                // installed = depends on tool_type
+                let installed = match spec.tool_type {
+                    ToolType::Cli => cli_found,
+                    ToolType::App => app_installed,
+                    ToolType::Both => cli_found || app_installed,
+                };
 
-            // Resolve config directory
-            let config_dir = resolve_config_dir(&home, spec.config_dir_name, spec.config_dir_alt);
+                // Resolve config directory
+                let config_dir =
+                    resolve_config_dir(&home, spec.config_dir_name, spec.config_dir_alt);
 
-            // Cross-reference with batch outdated results
-            let (latest_version, update_available) = match spec.install_method {
-                InstallMethod::Npm => {
-                    if let Some(info) = npm_outdated.get(spec.package_name) {
-                        (Some(info.latest.clone()), info.current != info.latest)
-                    } else {
-                        (None, false)
+                // Cross-reference with batch outdated results
+                let (latest_version, update_available) = match spec.install_method {
+                    InstallMethod::Npm => {
+                        if let Some(info) = npm_outdated.get(spec.package_name) {
+                            (Some(info.latest.clone()), info.current != info.latest)
+                        } else {
+                            (None, false)
+                        }
                     }
-                }
-                InstallMethod::Pip => {
-                    let key = spec.package_name.to_lowercase();
-                    if let Some(info) = pip_outdated.get(&key) {
-                        (Some(info.latest.clone()), info.version != info.latest)
-                    } else {
-                        (None, false)
+                    InstallMethod::Pip => {
+                        let key = spec.package_name.to_lowercase();
+                        if let Some(info) = pip_outdated.get(&key) {
+                            (Some(info.latest.clone()), info.version != info.latest)
+                        } else {
+                            (None, false)
+                        }
                     }
-                }
-                InstallMethod::BrewCask => {
-                    if let Some(info) = brew_outdated.get(spec.package_name) {
-                        (
-                            Some(info.current.clone()),
-                            info.installed != info.current,
-                        )
-                    } else {
-                        (None, false)
+                    InstallMethod::BrewCask => {
+                        if let Some(info) = brew_outdated.get(spec.package_name) {
+                            (
+                                Some(info.current.clone()),
+                                info.installed != info.current,
+                            )
+                        } else {
+                            (None, false)
+                        }
                     }
-                }
-                InstallMethod::GhExtension => {
-                    // gh extensions don't have a standard outdated check
-                    (None, false)
-                }
-                InstallMethod::SelfManaged => {
-                    // Self-managed tools: skip update check
-                    (None, false)
-                }
-            };
+                    InstallMethod::GhExtension => (None, false),
+                    InstallMethod::SelfManaged => (None, false),
+                };
 
-            AiToolInfo {
-                name: spec.name.to_string(),
-                binary: spec.binary.to_string(),
-                installed,
-                version,
-                latest_version,
-                update_available,
-                install_method: spec.install_method,
-                package_name: spec.package_name.to_string(),
-                binary_path,
-                install_hint: spec.install_hint.to_string(),
-                tool_type: spec.tool_type,
-                app_name,
-                app_installed,
-                app_path,
-                app_version,
-                config_dir,
-            }
+                AiToolInfo {
+                    name: spec.name.to_string(),
+                    binary: spec.binary.to_string(),
+                    installed,
+                    version,
+                    latest_version,
+                    update_available,
+                    install_method: spec.install_method,
+                    package_name: spec.package_name.to_string(),
+                    binary_path,
+                    install_hint: spec.install_hint.to_string(),
+                    tool_type: spec.tool_type,
+                    app_name,
+                    app_installed,
+                    app_path,
+                    app_version,
+                    config_dir,
+                }
+            })
         })
+        .collect();
+
+    let tools: Vec<AiToolInfo> = handles
+        .into_iter()
+        .map(|h| h.join().unwrap())
         .collect();
 
     AiToolsReport {

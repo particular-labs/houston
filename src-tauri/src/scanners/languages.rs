@@ -198,58 +198,71 @@ fn which(binary: &str) -> Option<String> {
 }
 
 pub fn scan() -> Vec<LanguageInfo> {
-    let mut results = Vec::new();
+    let handles: Vec<_> = LANGUAGES
+        .iter()
+        .map(|spec| {
+            let name = spec.name;
+            let binary = spec.binary;
+            let version_args = spec.version_args;
+            let version_parser = spec.version_parser;
+            let manager_detector = spec.manager_detector;
+            let icon = spec.icon;
+            std::thread::spawn(move || {
+                if let Some(binary_path) = which(binary) {
+                    let output = Command::new(binary).args(version_args).output();
 
-    for spec in LANGUAGES {
-        if let Some(binary_path) = which(spec.binary) {
-            let output = Command::new(spec.binary)
-                .args(spec.version_args)
-                .output();
+                    let (installed, version) = match output {
+                        Ok(o) if o.status.success() => {
+                            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
+                            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+                            let raw = if stdout.trim().is_empty() {
+                                &stderr
+                            } else {
+                                &stdout
+                            };
+                            let ver = version_parser(raw.trim());
+                            (true, ver)
+                        }
+                        _ => (false, String::new()),
+                    };
 
-            let (installed, version) = match output {
-                Ok(o) if o.status.success() => {
-                    let stdout = String::from_utf8_lossy(&o.stdout).to_string();
-                    let stderr = String::from_utf8_lossy(&o.stderr).to_string();
-                    let raw = if stdout.trim().is_empty() { &stderr } else { &stdout };
-                    let ver = (spec.version_parser)(raw.trim());
-                    (true, ver)
+                    if !installed {
+                        return LanguageInfo {
+                            name: name.to_string(),
+                            version: String::new(),
+                            binary_path: String::new(),
+                            manager: String::new(),
+                            installed: false,
+                            icon: icon.to_string(),
+                        };
+                    }
+
+                    let manager = manager_detector(&binary_path);
+
+                    LanguageInfo {
+                        name: name.to_string(),
+                        version,
+                        binary_path,
+                        manager,
+                        installed: true,
+                        icon: icon.to_string(),
+                    }
+                } else {
+                    LanguageInfo {
+                        name: name.to_string(),
+                        version: String::new(),
+                        binary_path: String::new(),
+                        manager: String::new(),
+                        installed: false,
+                        icon: icon.to_string(),
+                    }
                 }
-                _ => (false, String::new()),
-            };
+            })
+        })
+        .collect();
 
-            if !installed {
-                results.push(LanguageInfo {
-                    name: spec.name.to_string(),
-                    version: String::new(),
-                    binary_path: String::new(),
-                    manager: String::new(),
-                    installed: false,
-                    icon: spec.icon.to_string(),
-                });
-                continue;
-            }
-
-            let manager = (spec.manager_detector)(&binary_path);
-
-            results.push(LanguageInfo {
-                name: spec.name.to_string(),
-                version,
-                binary_path,
-                manager,
-                installed: true,
-                icon: spec.icon.to_string(),
-            });
-        } else {
-            results.push(LanguageInfo {
-                name: spec.name.to_string(),
-                version: String::new(),
-                binary_path: String::new(),
-                manager: String::new(),
-                installed: false,
-                icon: spec.icon.to_string(),
-            });
-        }
-    }
-
-    results
+    handles
+        .into_iter()
+        .map(|h| h.join().unwrap())
+        .collect()
 }

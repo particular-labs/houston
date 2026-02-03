@@ -8,7 +8,8 @@ export type Section =
   | "environment"
   | "workspaces"
   | "packages"
-  | "tools";
+  | "tools"
+  | "settings";
 
 export type DetailContext =
   | { type: "project-group"; groupName: string; label: string }

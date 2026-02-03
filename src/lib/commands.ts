@@ -142,6 +142,24 @@ export interface FixResult {
   output: string | null;
 }
 
+// Stats types
+export interface ScannerStatsSnapshot {
+  name: string;
+  cache_hits: number;
+  cache_misses: number;
+  last_scan_duration_ms: number | null;
+  total_scans: number;
+  ttl_secs: number;
+  is_warm: boolean;
+}
+
+export interface AppStatsSnapshot {
+  scanners: ScannerStatsSnapshot[];
+  pid: number;
+  uptime_secs: number;
+  memory_bytes: number;
+}
+
 // Command wrappers
 export const commands = {
   // System
@@ -195,4 +213,7 @@ export const commands = {
     invoke<DiagnosticReport>("refresh_diagnostics"),
   runDiagnosticFix: (fixId: string) =>
     invoke<FixResult>("run_diagnostic_fix", { fixId }),
+
+  // Stats
+  getAppStats: () => invoke<AppStatsSnapshot>("get_app_stats"),
 };

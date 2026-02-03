@@ -125,10 +125,14 @@ fn scan_cargo() -> Vec<PackageInfo> {
 }
 
 pub fn scan() -> PackageList {
+    let npm = std::thread::spawn(scan_npm_global);
+    let brew = std::thread::spawn(scan_brew);
+    let pip = std::thread::spawn(scan_pip);
+    let cargo = std::thread::spawn(scan_cargo);
     PackageList {
-        npm_global: scan_npm_global(),
-        brew: scan_brew(),
-        pip: scan_pip(),
-        cargo: scan_cargo(),
+        npm_global: npm.join().unwrap_or_default(),
+        brew: brew.join().unwrap_or_default(),
+        pip: pip.join().unwrap_or_default(),
+        cargo: cargo.join().unwrap_or_default(),
     }
 }

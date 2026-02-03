@@ -4,7 +4,7 @@ mod state;
 
 use commands::{
     action_cmds, ai_tools_cmds, claude_cmds, diagnostics_cmds, env_cmds, language_cmds,
-    package_cmds, system_cmds, workspace_cmds,
+    package_cmds, stats_cmds, system_cmds, workspace_cmds,
 };
 use state::AppState;
 
@@ -52,6 +52,8 @@ pub fn run() {
             // AI Tools
             ai_tools_cmds::get_ai_tools,
             ai_tools_cmds::refresh_ai_tools,
+            // Stats
+            stats_cmds::get_app_stats,
         ])
         .setup(|app| {
             // Apply macOS vibrancy
@@ -68,6 +70,39 @@ pub fn run() {
                     );
                 }
             }
+
+            // Pre-warm caches in background
+            {
+                use tauri::Manager;
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    let state = app_handle.state::<AppState>();
+
+                    // Fast scans first (Dashboard needs these)
+                    let sys = scanners::system::scan();
+                    state.system_cache.lock().unwrap().set(sys);
+
+                    let paths = scanners::path::scan();
+                    state.path_cache.lock().unwrap().set(paths);
+
+                    let langs = scanners::languages::scan();
+                    state.language_cache.lock().unwrap().set(langs);
+
+                    let envs = scanners::environment::scan();
+                    state.env_cache.lock().unwrap().set(envs);
+
+                    // Slower scans (user may not visit immediately)
+                    let pkgs = scanners::packages::scan();
+                    state.package_cache.lock().unwrap().set(pkgs);
+
+                    let ai_tools = scanners::ai_tools::scan();
+                    state.ai_tools_cache.lock().unwrap().set(ai_tools);
+
+                    let diag = scanners::diagnostics::scan();
+                    state.diagnostics_cache.lock().unwrap().set(diag);
+                });
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())

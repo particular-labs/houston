@@ -456,15 +456,26 @@ fn check_environment_tools() -> Vec<DiagnosticItem> {
 }
 
 pub fn scan() -> DiagnosticReport {
+    // Spawn threads for the 6 slow process-spawning checks
+    let brew_outdated = std::thread::spawn(check_outdated_brew);
+    let npm_outdated = std::thread::spawn(check_outdated_npm);
+    let pip_outdated = std::thread::spawn(check_outdated_pip);
+    let brew_doctor = std::thread::spawn(check_brew_doctor);
+    let dup_binaries = std::thread::spawn(check_duplicate_binaries);
+    let env_tools = std::thread::spawn(check_environment_tools);
+
+    // Run the 2 fast checks inline
     let mut items = Vec::new();
-    items.extend(check_outdated_brew());
-    items.extend(check_outdated_npm());
-    items.extend(check_outdated_pip());
-    items.extend(check_brew_doctor());
     items.extend(check_path_issues());
-    items.extend(check_duplicate_binaries());
     items.extend(check_shell_config());
-    items.extend(check_environment_tools());
+
+    // Collect threaded results
+    items.extend(brew_outdated.join().unwrap_or_default());
+    items.extend(npm_outdated.join().unwrap_or_default());
+    items.extend(pip_outdated.join().unwrap_or_default());
+    items.extend(brew_doctor.join().unwrap_or_default());
+    items.extend(dup_binaries.join().unwrap_or_default());
+    items.extend(env_tools.join().unwrap_or_default());
 
     DiagnosticReport {
         items,

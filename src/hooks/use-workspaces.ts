@@ -78,6 +78,7 @@ export function useAddWorkspace() {
       persistPaths(updatedPaths);
       queryClient.invalidateQueries({ queryKey: ["workspace-paths"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["all-git-statuses"] });
     },
   });
 }
@@ -90,6 +91,7 @@ export function useRemoveWorkspace() {
       persistPaths(updatedPaths);
       queryClient.invalidateQueries({ queryKey: ["workspace-paths"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["all-git-statuses"] });
     },
   });
 }

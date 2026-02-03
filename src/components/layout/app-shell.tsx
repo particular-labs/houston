@@ -1,17 +1,56 @@
+import { lazy, Suspense } from "react";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { AppStatusBar } from "./app-status-bar";
 import { CommandPalette } from "./command-palette";
 import { useNavigationStore } from "@/stores/navigation";
+import { SectionSkeleton } from "@/components/shared/skeleton";
 
-import { Dashboard } from "@/components/sections/dashboard";
-import { SystemSection } from "@/components/sections/system";
-import { PathInspector } from "@/components/sections/path-inspector";
-import { LanguagesSection } from "@/components/sections/languages";
-import { EnvironmentSection } from "@/components/sections/environment";
-import { WorkspacesSection } from "@/components/sections/workspaces";
-import { PackagesSection } from "@/components/sections/packages";
-import { ToolsSection } from "@/components/sections/tools";
+const Dashboard = lazy(() =>
+  import("@/components/sections/dashboard").then((m) => ({
+    default: m.Dashboard,
+  })),
+);
+const SystemSection = lazy(() =>
+  import("@/components/sections/system").then((m) => ({
+    default: m.SystemSection,
+  })),
+);
+const PathInspector = lazy(() =>
+  import("@/components/sections/path-inspector").then((m) => ({
+    default: m.PathInspector,
+  })),
+);
+const LanguagesSection = lazy(() =>
+  import("@/components/sections/languages").then((m) => ({
+    default: m.LanguagesSection,
+  })),
+);
+const EnvironmentSection = lazy(() =>
+  import("@/components/sections/environment").then((m) => ({
+    default: m.EnvironmentSection,
+  })),
+);
+const WorkspacesSection = lazy(() =>
+  import("@/components/sections/workspaces").then((m) => ({
+    default: m.WorkspacesSection,
+  })),
+);
+const PackagesSection = lazy(() =>
+  import("@/components/sections/packages").then((m) => ({
+    default: m.PackagesSection,
+  })),
+);
+const ToolsSection = lazy(() =>
+  import("@/components/sections/tools").then((m) => ({
+    default: m.ToolsSection,
+  })),
+);
+const SettingsSection = lazy(() =>
+  import("@/components/sections/settings").then((m) => ({
+    default: m.SettingsSection,
+  })),
+);
 
 const sections = {
   dashboard: Dashboard,
@@ -22,6 +61,7 @@ const sections = {
   workspaces: WorkspacesSection,
   packages: PackagesSection,
   tools: ToolsSection,
+  settings: SettingsSection,
 } as const;
 
 export function AppShell() {
@@ -36,7 +76,9 @@ export function AppShell() {
           <div data-tauri-drag-region className="h-11 shrink-0" />
           <AppHeader />
           <main className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-            <ActiveComponent />
+            <Suspense fallback={<SectionSkeleton />}>
+              <ActiveComponent />
+            </Suspense>
           </main>
         </div>
       </div>

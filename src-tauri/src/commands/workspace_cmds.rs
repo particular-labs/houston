@@ -20,11 +20,17 @@ pub fn add_workspace(state: State<'_, AppState>, path: String) -> Vec<String> {
 pub fn remove_workspace(state: State<'_, AppState>, path: String) -> Vec<String> {
     let mut paths = state.workspace_paths.lock().unwrap();
     paths.retain(|p| p != &path);
-    paths.clone()
+    let result = paths.clone();
+    drop(paths);
+    // Invalidate project and git caches so stale data doesn't linger
+    state.project_cache.lock().unwrap().invalidate();
+    state.git_cache.lock().unwrap().invalidate();
+    result
 }
 
 #[tauri::command]
 pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> {
+    let start = std::time::Instant::now();
     let workspace_paths = state.workspace_paths.lock().unwrap().clone();
     let mut all_projects = Vec::new();
 
@@ -137,6 +143,8 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
             .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
 
+    state.project_stats.record_miss(start.elapsed().as_millis() as u64);
+
     // Cache it
     let mut cache = state.project_cache.lock().unwrap();
     cache.set(all_projects.clone());
@@ -153,6 +161,7 @@ pub fn get_git_status(_state: State<'_, AppState>, project_path: String) -> Opti
 pub fn get_all_git_statuses(state: State<'_, AppState>) -> Vec<git::GitStatus> {
     let mut cache = state.git_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
+        state.git_stats.record_hit();
         return cached;
     }
 
@@ -167,7 +176,9 @@ pub fn get_all_git_statuses(state: State<'_, AppState>) -> Vec<git::GitStatus> {
         .collect();
     drop(project_cache);
 
+    let start = std::time::Instant::now();
     let statuses = git::get_statuses(&project_paths);
+    state.git_stats.record_miss(start.elapsed().as_millis() as u64);
     cache.set(statuses.clone());
     statuses
 }

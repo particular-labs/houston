@@ -114,9 +114,17 @@ pub fn get_status(project_path: &str) -> Option<GitStatus> {
 }
 
 pub fn get_statuses(project_paths: &[String]) -> Vec<GitStatus> {
-    project_paths
+    let handles: Vec<_> = project_paths
         .iter()
-        .filter_map(|p| get_status(p))
+        .map(|p| {
+            let path = p.clone();
+            std::thread::spawn(move || get_status(&path))
+        })
+        .collect();
+
+    handles
+        .into_iter()
+        .filter_map(|h| h.join().unwrap())
         .collect()
 }
 
@@ -126,42 +134,43 @@ pub fn get_statuses(project_paths: &[String]) -> Vec<GitStatus> {
 pub fn detect_worktree_groups(
     project_paths: &[String],
 ) -> std::collections::HashMap<String, String> {
-    let mut result = std::collections::HashMap::new();
+    let handles: Vec<_> = project_paths
+        .iter()
+        .map(|path| {
+            let path = path.clone();
+            std::thread::spawn(move || {
+                let output = Command::new("git")
+                    .args(["worktree", "list", "--porcelain"])
+                    .current_dir(&path)
+                    .output();
 
-    for path in project_paths {
-        let output = Command::new("git")
-            .args(["worktree", "list", "--porcelain"])
-            .current_dir(path)
-            .output();
+                let output = match output {
+                    Ok(o) if o.status.success() => o,
+                    _ => return None,
+                };
 
-        let output = match output {
-            Ok(o) if o.status.success() => o,
-            _ => continue,
-        };
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let worktree_paths: Vec<String> = stdout
+                    .lines()
+                    .filter_map(|line| line.strip_prefix("worktree "))
+                    .map(|s| s.to_string())
+                    .collect();
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let worktree_paths: Vec<String> = stdout
-            .lines()
-            .filter_map(|line| line.strip_prefix("worktree "))
-            .map(|s| s.to_string())
-            .collect();
-
-        // Only relevant when there are multiple worktrees
-        if worktree_paths.len() > 1 {
-            let main_worktree = worktree_paths[0].clone();
-            // Map this project to its main worktree if it appears in the list
-            for wt in &worktree_paths {
-                if wt == path {
-                    result.insert(path.clone(), main_worktree.clone());
-                    break;
+                if worktree_paths.len() > 1 {
+                    let main_worktree = worktree_paths[0].clone();
+                    Some((path, main_worktree))
+                } else {
+                    None
                 }
-            }
-            // If the exact path wasn't in the list, still map it
-            if !result.contains_key(path) {
-                result.insert(path.clone(), main_worktree);
-            }
+            })
+        })
+        .collect();
+
+    let mut result = std::collections::HashMap::new();
+    for h in handles {
+        if let Some(Some((path, main_wt))) = h.join().ok() {
+            result.insert(path, main_wt);
         }
     }
-
     result
 }

@@ -6,9 +6,12 @@ use tauri::State;
 pub fn get_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> {
     let mut cache = state.env_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
+        state.env_stats.record_hit();
         return cached;
     }
+    let start = std::time::Instant::now();
     let vars = environment::scan();
+    state.env_stats.record_miss(start.elapsed().as_millis() as u64);
     cache.set(vars.clone());
     vars
 }
@@ -17,7 +20,9 @@ pub fn get_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> 
 pub fn refresh_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> {
     let mut cache = state.env_cache.lock().unwrap();
     cache.invalidate();
+    let start = std::time::Instant::now();
     let vars = environment::scan();
+    state.env_stats.record_miss(start.elapsed().as_millis() as u64);
     cache.set(vars.clone());
     vars
 }

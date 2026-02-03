@@ -38,3 +38,22 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
     </div>
   );
 }
+
+export function SectionSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Header skeleton */}
+      <div>
+        <Skeleton className="mb-2 h-6 w-40" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      {/* Card grid skeleton */}
+      <div className="grid grid-cols-2 gap-4">
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+    </div>
+  );
+}

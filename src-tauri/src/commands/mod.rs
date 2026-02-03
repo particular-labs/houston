@@ -5,5 +5,6 @@ pub mod diagnostics_cmds;
 pub mod env_cmds;
 pub mod language_cmds;
 pub mod package_cmds;
+pub mod stats_cmds;
 pub mod system_cmds;
 pub mod workspace_cmds;

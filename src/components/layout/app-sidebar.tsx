@@ -49,7 +49,7 @@ const navGroups: NavGroup[] = [
     title: "Tools",
     items: [
       { id: "packages", label: "Packages", icon: Package },
-      { id: "tools", label: "AI Tools", icon: Wrench },
+      { id: "tools", label: "Tools", icon: Wrench },
     ],
   },
 ];
@@ -100,7 +100,10 @@ export function AppSidebar() {
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t border-sidebar-border px-4 py-2.5">
-        <button className="text-muted-foreground transition-colors hover:text-foreground">
+        <button
+          onClick={() => setActiveSection("settings")}
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
           <Settings className="h-4 w-4" />
         </button>
         <span className="text-[10px] text-muted-foreground">v0.1.0</span>
