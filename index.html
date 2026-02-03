@@ -7,19 +7,121 @@
     <title>Houston</title>
     <style>
       /* Prevent white flash on load */
-      html, body { background: oklch(0.145 0.015 260); }
+      html, body {
+        background: oklch(0.145 0.015 260);
+        margin: 0;
+        padding: 0;
+      }
+
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        background: oklch(0.145 0.015 260);
+        animation: splashOut 0.4s ease-in 2.4s forwards;
+      }
+
+      .splash-wordmark {
+        font-family: Inter, system-ui, sans-serif;
+        font-size: 18px;
+        font-weight: 600;
+        color: oklch(0.95 0.01 260);
+        letter-spacing: 0.04em;
+        opacity: 0;
+        animation: fadeSlideUp 0.5s ease-out forwards;
+      }
+
+      .splash-tagline {
+        font-family: Inter, system-ui, sans-serif;
+        font-size: 11px;
+        font-weight: 400;
+        color: oklch(0.55 0.01 260);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-top: 4px;
+        opacity: 0;
+        animation: fadeIn 0.4s ease-out 0.3s forwards;
+      }
+
+      .splash-checks {
+        margin-top: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+        font-size: 12px;
+        color: oklch(0.65 0.01 260);
+      }
+
+      .splash-check {
+        opacity: 0;
+        white-space: pre;
+      }
+
+      .splash-check .dots {
+        color: oklch(0.35 0.01 260);
+      }
+
+      .splash-check .ok {
+        color: oklch(0.65 0.15 250);
+        font-weight: 600;
+      }
+
+      .splash-check.c1 { animation: fadeInLeft 0.3s ease-out 0.8s forwards; }
+      .splash-check.c2 { animation: fadeInLeft 0.3s ease-out 1.2s forwards; }
+      .splash-check.c3 { animation: fadeInLeft 0.3s ease-out 1.6s forwards; }
+      .splash-check.c4 {
+        animation: fadeIn 0.3s ease-out 2.0s forwards;
+        color: oklch(0.75 0.01 260);
+      }
+
+      @keyframes fadeSlideUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+
+      @keyframes fadeInLeft {
+        from { opacity: 0; transform: translateX(-8px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+
+      @keyframes splashOut {
+        from { opacity: 1; }
+        to   { opacity: 0; pointer-events: none; }
+      }
     </style>
   </head>
 
   <body>
-    <div id="root">
-      <!-- Splash screen: replaced by React on mount -->
-      <div id="splash" style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px">
-        <span style="font-size:16px;font-weight:600;color:oklch(0.95 0.01 260);font-family:Inter,system-ui,sans-serif">Houston</span>
-        <div style="width:24px;height:24px;border:2px solid oklch(0.3 0.015 260);border-top-color:oklch(0.65 0.15 250);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+    <!-- Splash overlay: lives outside #root so React mount doesn't remove it -->
+    <div id="splash">
+      <div class="splash-wordmark">HOUSTON</div>
+      <div class="splash-tagline">Dev Mission Control</div>
+      <div class="splash-checks">
+        <div class="splash-check c1">Systems <span class="dots">..........</span> <span class="ok">OK</span></div>
+        <div class="splash-check c2">Environment <span class="dots">......</span> <span class="ok">OK</span></div>
+        <div class="splash-check c3">Scanners <span class="dots">.........</span> <span class="ok">OK</span></div>
+        <div class="splash-check c4">Ready for launch</div>
       </div>
     </div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+    <div id="root"></div>
+    <script>
+      // Remove splash after animation completes (2.4s delay + 0.4s fade out)
+      setTimeout(function() {
+        var splash = document.getElementById('splash');
+        if (splash) splash.remove();
+      }, 2900);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

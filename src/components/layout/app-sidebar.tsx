@@ -66,6 +66,9 @@ export function AppSidebar() {
         <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
           Houston
         </span>
+        <span className="block text-[10px] tracking-wide text-muted-foreground">
+          Dev Mission Control
+        </span>
       </div>
 
       {/* Navigation */}
