@@ -33,6 +33,109 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
         all_projects.extend(projects);
     }
 
+    // Worktree post-processing: detect worktree groups across all projects
+    let git_paths: Vec<String> = all_projects
+        .iter()
+        .filter(|p| p.has_git)
+        .map(|p| p.path.clone())
+        .collect();
+
+    let worktree_map = git::detect_worktree_groups(&git_paths);
+
+    for project in &mut all_projects {
+        if let Some(main_wt) = worktree_map.get(&project.path) {
+            // Only apply worktree grouping if not already in a monorepo group
+            if project.group_type != "monorepo" {
+                project.worktree_id = main_wt.clone();
+                // Derive a group name from the main worktree path
+                let repo_name = std::path::Path::new(main_wt)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| main_wt.clone());
+                project.group = format!("{} (worktrees)", repo_name);
+                project.group_type = "worktree".to_string();
+            }
+        }
+    }
+
+    // Monorepo-worktree consolidation: when multiple monorepo roots are worktrees
+    // of each other, collapse them into a single worktree group card.
+    {
+        use std::collections::{HashMap, HashSet};
+
+        // Step 1: Find monorepo roots that appear in the worktree map
+        let mut main_wt_to_roots: HashMap<String, Vec<String>> = HashMap::new();
+        for project in all_projects.iter() {
+            if project.is_monorepo_root {
+                if let Some(main_wt) = worktree_map.get(&project.path) {
+                    main_wt_to_roots
+                        .entry(main_wt.clone())
+                        .or_default()
+                        .push(project.path.clone());
+                }
+            }
+        }
+
+        // Step 2: For groups with 2+ roots, collect their monorepo group names
+        let mut affected_groups: HashSet<String> = HashSet::new();
+        let mut roots_to_update: HashSet<String> = HashSet::new();
+        let mut group_name_for_root: HashMap<String, String> = HashMap::new();
+
+        for (main_wt, root_paths) in &main_wt_to_roots {
+            if root_paths.len() < 2 {
+                continue; // Solo monorepo, leave as-is
+            }
+
+            let main_wt_dirname = std::path::Path::new(main_wt)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| main_wt.clone());
+            let wt_group_name = format!("{} (worktrees)", main_wt_dirname);
+
+            for root_path in root_paths {
+                if let Some(proj) = all_projects.iter().find(|p| p.path == *root_path) {
+                    affected_groups.insert(proj.group.clone());
+                }
+                roots_to_update.insert(root_path.clone());
+                group_name_for_root.insert(root_path.clone(), wt_group_name.clone());
+            }
+        }
+
+        if !affected_groups.is_empty() {
+            // Remove sub-packages (non-root entries) from affected monorepo groups
+            all_projects.retain(|p| !affected_groups.contains(&p.group) || p.is_monorepo_root);
+
+            // Convert each monorepo root into a worktree entry
+            for project in &mut all_projects {
+                if roots_to_update.contains(&project.path) {
+                    let folder_name = std::path::Path::new(&project.path)
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| project.path.clone());
+                    project.name = folder_name;
+                    project.group = group_name_for_root
+                        .get(&project.path)
+                        .cloned()
+                        .unwrap_or_default();
+                    project.group_type = "worktree".to_string();
+                    project.is_monorepo_root = false;
+                    project.worktree_id = worktree_map
+                        .get(&project.path)
+                        .cloned()
+                        .unwrap_or_default();
+                }
+            }
+        }
+    }
+
+    // Re-sort
+    all_projects.sort_by(|a, b| {
+        a.group
+            .to_lowercase()
+            .cmp(&b.group.to_lowercase())
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+
     // Cache it
     let mut cache = state.project_cache.lock().unwrap();
     cache.set(all_projects.clone());
