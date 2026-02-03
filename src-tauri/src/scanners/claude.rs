@@ -10,6 +10,13 @@ pub struct McpServer {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SettingEntry {
+    pub key: String,
+    pub value: String,
+    pub value_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaudeConfig {
     pub installed: bool,
     pub config_path: String,
@@ -17,7 +24,7 @@ pub struct ClaudeConfig {
     pub mcp_servers: Vec<McpServer>,
     pub project_count: usize,
     pub has_settings: bool,
-    pub settings_summary: Vec<String>,
+    pub settings: Vec<SettingEntry>,
 }
 
 fn get_claude_dir() -> PathBuf {
@@ -38,7 +45,7 @@ pub fn scan() -> ClaudeConfig {
             mcp_servers: Vec::new(),
             project_count: 0,
             has_settings: false,
-            settings_summary: Vec::new(),
+            settings: Vec::new(),
         };
     }
 
@@ -46,7 +53,7 @@ pub fn scan() -> ClaudeConfig {
     let settings_path = claude_dir.join("settings.json");
     let mut mcp_servers = Vec::new();
     let mut has_settings = false;
-    let mut settings_summary = Vec::new();
+    let mut settings = Vec::new();
 
     if settings_path.exists() {
         has_settings = true;
@@ -78,18 +85,28 @@ pub fn scan() -> ClaudeConfig {
                     }
                 }
 
-                // Collect settings summary
+                // Collect structured settings
                 for (key, value) in json.as_object().into_iter().flatten() {
                     if key != "mcpServers" {
-                        let summary = match value {
-                            serde_json::Value::Bool(b) => format!("{key}: {b}"),
-                            serde_json::Value::String(s) => format!("{key}: {s}"),
-                            serde_json::Value::Number(n) => format!("{key}: {n}"),
-                            serde_json::Value::Array(a) => format!("{key}: [{} items]", a.len()),
-                            serde_json::Value::Object(o) => format!("{key}: {{{} keys}}", o.len()),
-                            serde_json::Value::Null => format!("{key}: null"),
+                        let (val_str, val_type) = match value {
+                            serde_json::Value::Bool(b) => (b.to_string(), "boolean"),
+                            serde_json::Value::String(s) => (s.clone(), "string"),
+                            serde_json::Value::Number(n) => (n.to_string(), "number"),
+                            serde_json::Value::Array(_) => (
+                                serde_json::to_string_pretty(value).unwrap_or_default(),
+                                "array",
+                            ),
+                            serde_json::Value::Object(_) => (
+                                serde_json::to_string_pretty(value).unwrap_or_default(),
+                                "object",
+                            ),
+                            serde_json::Value::Null => ("null".to_string(), "null"),
                         };
-                        settings_summary.push(summary);
+                        settings.push(SettingEntry {
+                            key: key.clone(),
+                            value: val_str,
+                            value_type: val_type.to_string(),
+                        });
                     }
                 }
             }
@@ -120,6 +137,6 @@ pub fn scan() -> ClaudeConfig {
         mcp_servers,
         project_count,
         has_settings,
-        settings_summary,
+        settings,
     }
 }

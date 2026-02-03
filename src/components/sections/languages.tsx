@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useLanguages } from "@/hooks/use-languages";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -11,7 +11,6 @@ export function LanguagesSection() {
   const queryClient = useQueryClient();
 
   const installed = languages?.filter((l) => l.installed) ?? [];
-  const notInstalled = languages?.filter((l) => !l.installed) ?? [];
 
   return (
     <div className="space-y-6">
@@ -64,28 +63,6 @@ export function LanguagesSection() {
               </div>
             ))}
           </div>
-
-          {/* Not installed */}
-          {notInstalled.length > 0 && (
-            <div>
-              <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                Not Detected
-              </h3>
-              <div className="grid grid-cols-4 gap-2">
-                {notInstalled.map((lang) => (
-                  <div
-                    key={lang.name}
-                    className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 opacity-50"
-                  >
-                    <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                      {lang.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>

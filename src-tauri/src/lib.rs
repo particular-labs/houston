@@ -54,6 +54,7 @@ pub fn run() {
             // AI Tools
             ai_tools_cmds::get_ai_tools,
             ai_tools_cmds::refresh_ai_tools,
+            ai_tools_cmds::update_ai_tool,
             // Stats
             stats_cmds::get_app_stats,
         ])

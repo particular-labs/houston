@@ -8,6 +8,7 @@ use std::process::Command;
 pub enum InstallMethod {
     Npm,
     Pip,
+    Brew,
     BrewCask,
     GhExtension,
     SelfManaged,
@@ -39,6 +40,8 @@ pub struct AiToolInfo {
     pub app_path: Option<String>,
     pub app_version: Option<String>,
     pub config_dir: Option<String>,
+    pub has_ai: bool,
+    pub ai_features: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +60,9 @@ struct ToolSpec {
     app_bundle: Option<&'static str>,
     config_dir_name: Option<&'static str>,
     config_dir_alt: Option<&'static str>,
+    has_ai: bool,
+    ai_features: &'static [&'static str],
+    app_bundle_alt: Option<&'static str>,
 }
 
 fn tool_registry() -> Vec<ToolSpec> {
@@ -71,6 +77,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: Some(".claude"),
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Agent", "Chat", "MCP"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Claude Desktop",
@@ -82,6 +91,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: Some("Claude.app"),
             config_dir_name: Some("Library/Application Support/Claude"),
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Chat", "MCP", "Artifacts"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "OpenAI Codex CLI",
@@ -93,6 +105,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: None,
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Agent", "Code Generation"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Gemini CLI",
@@ -104,6 +119,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: None,
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Agent", "Chat"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Aider",
@@ -115,6 +133,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: None,
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Agent", "Chat", "Code Edit"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Amazon Q Developer",
@@ -126,6 +147,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: None,
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Agent", "Chat", "Code Completion"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "GitHub Copilot CLI",
@@ -137,6 +161,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: None,
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["CLI Suggestions"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Amp",
@@ -148,6 +175,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: None,
             config_dir_name: None,
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Agent", "Chat"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Cursor",
@@ -159,6 +189,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: Some("Cursor.app"),
             config_dir_name: Some("Library/Application Support/Cursor"),
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Copilot++", "Chat", "Agent"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Windsurf",
@@ -170,6 +203,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: Some("Windsurf.app"),
             config_dir_name: Some("Library/Application Support/Windsurf"),
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Cascade", "Chat", "Autocomplete"],
+            app_bundle_alt: None,
         },
         ToolSpec {
             name: "Zed",
@@ -181,6 +217,136 @@ fn tool_registry() -> Vec<ToolSpec> {
             app_bundle: Some("Zed.app"),
             config_dir_name: Some("Library/Application Support/Zed"),
             config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["AI Assistant", "Inline Completion"],
+            app_bundle_alt: None,
+        },
+        // IDEs & Editors
+        ToolSpec {
+            name: "VS Code",
+            binary: "code",
+            package_name: "visual-studio-code",
+            install_method: InstallMethod::BrewCask,
+            install_hint: "brew install --cask visual-studio-code",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Visual Studio Code.app"),
+            config_dir_name: Some("Library/Application Support/Code"),
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Copilot", "Chat", "Inline Completion"],
+            app_bundle_alt: None,
+        },
+        ToolSpec {
+            name: "IntelliJ IDEA",
+            binary: "idea",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://www.jetbrains.com/idea/",
+            tool_type: ToolType::Both,
+            app_bundle: Some("IntelliJ IDEA.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["AI Assistant", "Chat", "Inline Completion"],
+            app_bundle_alt: Some("IntelliJ IDEA CE.app"),
+        },
+        ToolSpec {
+            name: "WebStorm",
+            binary: "webstorm",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://www.jetbrains.com/webstorm/",
+            tool_type: ToolType::Both,
+            app_bundle: Some("WebStorm.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["AI Assistant", "Chat", "Inline Completion"],
+            app_bundle_alt: None,
+        },
+        ToolSpec {
+            name: "PyCharm",
+            binary: "pycharm",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://www.jetbrains.com/pycharm/",
+            tool_type: ToolType::Both,
+            app_bundle: Some("PyCharm.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["AI Assistant", "Chat", "Inline Completion"],
+            app_bundle_alt: Some("PyCharm CE.app"),
+        },
+        ToolSpec {
+            name: "Android Studio",
+            binary: "",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://developer.android.com/studio",
+            tool_type: ToolType::App,
+            app_bundle: Some("Android Studio.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Gemini", "Chat", "Code Completion"],
+            app_bundle_alt: None,
+        },
+        ToolSpec {
+            name: "Neovim",
+            binary: "nvim",
+            package_name: "neovim",
+            install_method: InstallMethod::Brew,
+            install_hint: "brew install neovim",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: Some(".config/nvim"),
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+        },
+        ToolSpec {
+            name: "Warp",
+            binary: "",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://www.warp.dev",
+            tool_type: ToolType::App,
+            app_bundle: Some("Warp.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Warp AI", "Command Suggestions"],
+            app_bundle_alt: None,
+        },
+        ToolSpec {
+            name: "Sublime Text",
+            binary: "subl",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://www.sublimetext.com",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Sublime Text.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+        },
+        ToolSpec {
+            name: "Nova",
+            binary: "",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://nova.app",
+            tool_type: ToolType::App,
+            app_bundle: Some("Nova.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
         },
     ]
 }
@@ -435,6 +601,46 @@ fn extract_version(s: &str) -> String {
     s.lines().next().unwrap_or(s).to_string()
 }
 
+/// Returns the (command, args) needed to update the given tool, if updatable.
+pub fn get_update_command(tool_name: &str) -> Option<(String, Vec<String>)> {
+    let registry = tool_registry();
+    let spec = registry.iter().find(|s| s.name == tool_name)?;
+    if spec.package_name.is_empty() {
+        return None;
+    }
+    match spec.install_method {
+        InstallMethod::Npm => Some((
+            "npm".to_string(),
+            vec![
+                "update".to_string(),
+                "-g".to_string(),
+                spec.package_name.to_string(),
+            ],
+        )),
+        InstallMethod::Pip => Some((
+            "pip3".to_string(),
+            vec![
+                "install".to_string(),
+                "--upgrade".to_string(),
+                spec.package_name.to_string(),
+            ],
+        )),
+        InstallMethod::Brew => Some((
+            "brew".to_string(),
+            vec!["upgrade".to_string(), spec.package_name.to_string()],
+        )),
+        InstallMethod::BrewCask => Some((
+            "brew".to_string(),
+            vec![
+                "upgrade".to_string(),
+                "--cask".to_string(),
+                spec.package_name.to_string(),
+            ],
+        )),
+        _ => None,
+    }
+}
+
 pub fn scan() -> AiToolsReport {
     let registry = tool_registry();
     let home = std::env::var("HOME").unwrap_or_default();
@@ -488,8 +694,11 @@ pub fn scan() -> AiToolsReport {
                     None
                 };
 
-                // App detection
-                let app_path = spec.app_bundle.and_then(check_app_installed);
+                // App detection (check primary bundle, then alternate)
+                let app_path = spec
+                    .app_bundle
+                    .and_then(check_app_installed)
+                    .or_else(|| spec.app_bundle_alt.and_then(check_app_installed));
                 let app_installed = app_path.is_some();
                 let app_version = app_path.as_deref().and_then(get_app_version);
                 let app_name = spec.app_bundle.map(|b| b.to_string());
@@ -522,6 +731,13 @@ pub fn scan() -> AiToolsReport {
                             (None, false)
                         }
                     }
+                    InstallMethod::Brew => {
+                        if let Some(info) = brew_outdated.get(spec.package_name) {
+                            (Some(info.current.clone()), info.installed != info.current)
+                        } else {
+                            (None, false)
+                        }
+                    }
                     InstallMethod::BrewCask => {
                         if let Some(info) = brew_outdated.get(spec.package_name) {
                             (Some(info.current.clone()), info.installed != info.current)
@@ -550,6 +766,8 @@ pub fn scan() -> AiToolsReport {
                     app_path,
                     app_version,
                     config_dir,
+                    has_ai: spec.has_ai,
+                    ai_features: spec.ai_features.iter().map(|s| s.to_string()).collect(),
                 }
             })
         })

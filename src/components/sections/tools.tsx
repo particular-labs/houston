@@ -5,12 +5,10 @@ import {
   ChevronDown,
   ChevronRight,
   CheckCircle2,
-  XCircle,
   ArrowUpCircle,
   ArrowLeft,
   Wrench,
-  Bot,
-  Zap,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 import { useClaudeConfig } from "@/hooks/use-claude-config";
@@ -22,9 +20,10 @@ import { CardSkeleton } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useNavigationStore } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import type { AiToolInfo } from "@/lib/commands";
+import { commands } from "@/lib/commands";
+import type { AiToolInfo, FixResult, SettingEntry } from "@/lib/commands";
 
-// --- List View Components ---
+// --- Shared Components ---
 
 function ToolTypeBadge({ toolType }: { toolType: AiToolInfo["tool_type"] }) {
   const label =
@@ -32,13 +31,109 @@ function ToolTypeBadge({ toolType }: { toolType: AiToolInfo["tool_type"] }) {
   return <StatusBadge variant="neutral">{label}</StatusBadge>;
 }
 
+function SettingEntryRow({ entry }: { entry: SettingEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const isExpandable =
+    entry.value_type === "array" || entry.value_type === "object";
+
+  const renderValue = () => {
+    switch (entry.value_type) {
+      case "boolean":
+        return (
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${entry.value === "true" ? "bg-success" : "bg-destructive"}`}
+          />
+        );
+      case "array": {
+        let count = "?";
+        try {
+          const parsed = JSON.parse(entry.value);
+          if (Array.isArray(parsed)) count = String(parsed.length);
+        } catch {
+          /* ignore */
+        }
+        return (
+          <span className="text-muted-foreground">[{count} items]</span>
+        );
+      }
+      case "object": {
+        let count = "?";
+        try {
+          count = String(Object.keys(JSON.parse(entry.value)).length);
+        } catch {
+          /* ignore */
+        }
+        return (
+          <span className="text-muted-foreground">
+            {"{"}
+            {count} keys
+            {"}"}
+          </span>
+        );
+      }
+      default:
+        return (
+          <span className="font-mono text-muted-foreground">
+            {entry.value}
+          </span>
+        );
+    }
+  };
+
+  return (
+    <div className="py-1">
+      <div
+        className={`flex items-center justify-between text-xs ${isExpandable ? "cursor-pointer" : ""}`}
+        onClick={isExpandable ? () => setExpanded(!expanded) : undefined}
+      >
+        <span className="font-medium">{entry.key}</span>
+        <div className="flex items-center gap-1">
+          {renderValue()}
+          {isExpandable &&
+            (expanded ? (
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            ))}
+        </div>
+      </div>
+      {isExpandable && expanded && (
+        <pre className="mt-1 overflow-x-auto rounded bg-muted/50 p-2 text-[10px] text-muted-foreground">
+          {entry.value}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// --- List View Components ---
+
 function InstalledToolCard({ tool }: { tool: AiToolInfo }) {
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
+  const queryClient = useQueryClient();
+  const [isUpdating, setIsUpdating] = useState(false);
   const displayVersion = tool.version ?? tool.app_version ?? "installed";
   const displayPath = tool.binary_path ?? tool.app_path;
 
+  const handleUpdate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsUpdating(true);
+    try {
+      const result = await commands.updateAiTool(tool.name);
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ["ai-tools"] });
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() =>
         setDetailContext({
           type: "tool-detail",
@@ -46,29 +141,65 @@ function InstalledToolCard({ tool }: { tool: AiToolInfo }) {
           label: tool.name,
         })
       }
-      className="group rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/30 hover:bg-accent/30"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          setDetailContext({
+            type: "tool-detail",
+            toolName: tool.name,
+            label: tool.name,
+          });
+        }
+      }}
+      className="group cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/30 hover:bg-accent/30"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-3.5 w-3.5 text-success" />
           <span className="text-sm font-medium">{tool.name}</span>
+          {tool.has_ai && (
+            <span className="flex items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              <Sparkles className="h-2.5 w-2.5" />
+              AI
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {tool.update_available && (
-            <StatusBadge variant="warning">
+          {tool.update_available && !isUpdating && (
+            <button
+              onClick={handleUpdate}
+              className="flex items-center gap-1 rounded-md bg-warning/10 px-2 py-1 text-[10px] font-medium text-warning transition-colors hover:bg-warning/20"
+            >
               <ArrowUpCircle className="h-3 w-3" />
               Update
-            </StatusBadge>
+            </button>
+          )}
+          {isUpdating && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           )}
           <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
         </div>
       </div>
       <div className="mt-2 flex items-center gap-2">
-        <span className="text-2xl font-semibold tracking-tight">
+        <span
+          className="max-w-[180px] truncate text-2xl font-semibold tracking-tight"
+          title={displayVersion}
+        >
           {displayVersion}
         </span>
         <ToolTypeBadge toolType={tool.tool_type} />
       </div>
+      {tool.has_ai && tool.ai_features.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {tool.ai_features.map((feature) => (
+            <span
+              key={feature}
+              className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {feature}
+            </span>
+          ))}
+        </div>
+      )}
       {tool.update_available && tool.latest_version && (
         <span className="mt-1 block text-xs text-warning">
           {tool.latest_version} available
@@ -81,29 +212,10 @@ function InstalledToolCard({ tool }: { tool: AiToolInfo }) {
           </span>
         </div>
       )}
-    </button>
-  );
-}
-
-function NotDetectedRow({ tools }: { tools: AiToolInfo[] }) {
-  if (tools.length === 0) return null;
-  return (
-    <div className="grid grid-cols-4 gap-3">
-      {tools.map((tool) => (
-        <div
-          key={tool.name}
-          className="flex items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-3 py-2 opacity-50"
-          title={tool.install_hint}
-        >
-          <XCircle className="h-3 w-3 shrink-0 text-muted-foreground" />
-          <span className="truncate text-xs text-muted-foreground">
-            {tool.name}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
+
 
 function ToolsListView() {
   const {
@@ -114,7 +226,6 @@ function ToolsListView() {
   const queryClient = useQueryClient();
 
   const installedTools = aiReport?.tools.filter((t) => t.installed) ?? [];
-  const notDetected = aiReport?.tools.filter((t) => !t.installed) ?? [];
 
   return (
     <div className="space-y-6">
@@ -147,7 +258,7 @@ function ToolsListView() {
               ))}
             </div>
           )}
-          <NotDetectedRow tools={notDetected} />
+          {/* Not-detected tools hidden — only show installed */}
         </>
       )}
     </div>
@@ -166,8 +277,31 @@ function ToolDetailView({ toolName }: { toolName: string }) {
   const queryClient = useQueryClient();
   const [mcpExpanded, setMcpExpanded] = useState(true);
   const [settingsExpanded, setSettingsExpanded] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateResult, setUpdateResult] = useState<FixResult | null>(null);
 
   const tool = aiReport?.tools.find((t) => t.name === toolName);
+
+  const handleUpdate = async () => {
+    if (!tool) return;
+    setIsUpdating(true);
+    setUpdateResult(null);
+    try {
+      const result = await commands.updateAiTool(tool.name);
+      setUpdateResult(result);
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ["ai-tools"] });
+      }
+    } catch {
+      setUpdateResult({
+        success: false,
+        message: "Failed to run update",
+        output: null,
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (!tool) {
     return (
@@ -298,26 +432,58 @@ function ToolDetailView({ toolName }: { toolName: string }) {
             </div>
           )}
 
-          {/* Update info */}
+          {/* Update info with action button */}
           {tool.update_available && tool.latest_version && (
-            <div>
+            <div className="col-span-full">
               <span className="text-xs text-muted-foreground">
                 Latest Version
               </span>
-              <div className="flex items-center gap-2">
+              <div className="mt-1 flex items-center gap-3">
                 <p className="font-mono text-xs">{tool.latest_version}</p>
-                <StatusBadge variant="warning">
-                  <ArrowUpCircle className="h-3 w-3" />
-                  Update available
-                </StatusBadge>
+                <button
+                  onClick={handleUpdate}
+                  disabled={isUpdating}
+                  className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isUpdating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ArrowUpCircle className="h-3 w-3" />
+                  )}
+                  Update to {tool.latest_version}
+                </button>
               </div>
+              {updateResult && (
+                <div
+                  className={`mt-2 rounded-md p-2 text-xs ${updateResult.success ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}
+                >
+                  {updateResult.message}
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {/* AI Features tags */}
+        {tool.has_ai && tool.ai_features.length > 0 && (
+          <div className="mt-4 border-t border-border pt-3">
+            <span className="text-xs text-muted-foreground">AI Features</span>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {tool.ai_features.map((feature) => (
+                <span
+                  key={feature}
+                  className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                >
+                  {feature}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* MCP Servers card */}
-      {isClaudeCode && claude?.installed && !claudeLoading ? (
+      {/* Claude Code Config card */}
+      {isClaudeCode && claude?.installed && !claudeLoading && (
         <div className="rounded-lg border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border p-4">
             <div className="flex items-center gap-2.5">
@@ -403,7 +569,7 @@ function ToolDetailView({ toolName }: { toolName: string }) {
             )}
 
             {/* Settings accordion */}
-            {claude.has_settings && claude.settings_summary.length > 0 && (
+            {claude.has_settings && claude.settings.length > 0 && (
               <div className="mt-2 rounded-md border border-border">
                 <button
                   onClick={() => setSettingsExpanded(!settingsExpanded)}
@@ -421,13 +587,8 @@ function ToolDetailView({ toolName }: { toolName: string }) {
                 </button>
                 {settingsExpanded && (
                   <div className="border-t border-border px-3 py-2">
-                    {claude.settings_summary.map((setting) => (
-                      <p
-                        key={setting}
-                        className="py-0.5 font-mono text-xs text-muted-foreground"
-                      >
-                        {setting}
-                      </p>
+                    {claude.settings.map((entry) => (
+                      <SettingEntryRow key={entry.key} entry={entry} />
                     ))}
                   </div>
                 )}
@@ -435,39 +596,7 @@ function ToolDetailView({ toolName }: { toolName: string }) {
             )}
           </div>
         </div>
-      ) : !isClaudeCode ? (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center gap-2.5">
-            <Server className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-sm font-medium">MCP Servers</h3>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            No MCP configuration detected for {tool.name}.
-          </p>
-        </div>
-      ) : null}
-
-      {/* Placeholder cards for future features */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/50 p-6 opacity-50">
-          <Bot className="h-5 w-5 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">
-            Agents
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            Coming soon
-          </span>
-        </div>
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/50 p-6 opacity-50">
-          <Zap className="h-5 w-5 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">
-            Skills
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            Coming soon
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

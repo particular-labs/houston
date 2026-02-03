@@ -84,6 +84,12 @@ export interface McpServer {
   args: string[];
 }
 
+export interface SettingEntry {
+  key: string;
+  value: string;
+  value_type: string;
+}
+
 export interface ClaudeConfig {
   installed: boolean;
   config_path: string;
@@ -91,7 +97,7 @@ export interface ClaudeConfig {
   mcp_servers: McpServer[];
   project_count: number;
   has_settings: boolean;
-  settings_summary: string[];
+  settings: SettingEntry[];
 }
 
 // AI Tools types
@@ -102,7 +108,13 @@ export interface AiToolInfo {
   version: string | null;
   latest_version: string | null;
   update_available: boolean;
-  install_method: "npm" | "pip" | "brew_cask" | "gh_extension" | "self_managed";
+  install_method:
+    | "npm"
+    | "pip"
+    | "brew"
+    | "brew_cask"
+    | "gh_extension"
+    | "self_managed";
   package_name: string;
   binary_path: string | null;
   install_hint: string;
@@ -112,6 +124,8 @@ export interface AiToolInfo {
   app_path: string | null;
   app_version: string | null;
   config_dir: string | null;
+  has_ai: boolean;
+  ai_features: string[];
 }
 
 export interface AiToolsReport {
@@ -206,6 +220,8 @@ export const commands = {
   // AI Tools
   getAiTools: () => invoke<AiToolsReport>("get_ai_tools"),
   refreshAiTools: () => invoke<AiToolsReport>("refresh_ai_tools"),
+  updateAiTool: (toolName: string) =>
+    invoke<FixResult>("update_ai_tool", { toolName }),
 
   // Diagnostics
   getDiagnostics: () => invoke<DiagnosticReport>("get_diagnostics"),
