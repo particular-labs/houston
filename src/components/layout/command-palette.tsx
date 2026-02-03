@@ -27,7 +27,7 @@ const items: NavItem[] = [
   { id: "environment", label: "Environment Variables", icon: Variable, group: "Navigation" },
   { id: "workspaces", label: "Projects & Workspaces", icon: FolderGit2, group: "Navigation" },
   { id: "packages", label: "Global Packages", icon: Package, group: "Navigation" },
-  { id: "tools", label: "CLI Tools & Config", icon: Wrench, group: "Navigation" },
+  { id: "tools", label: "AI Tools", icon: Wrench, group: "Navigation" },
 ];
 
 export function CommandPalette() {

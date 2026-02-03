@@ -11,7 +11,7 @@ const sectionLabels: Record<Section, string> = {
   environment: "Environment",
   workspaces: "Projects",
   packages: "Packages",
-  tools: "CLI Tools",
+  tools: "AI Tools",
 };
 
 export function AppHeader() {
@@ -58,6 +58,13 @@ export function AppHeader() {
                 >
                   {detailContext.parentGroupName}
                 </button>
+                <span className="text-xs text-muted-foreground">/</span>
+                <span className="text-sm font-medium">
+                  {detailContext.label}
+                </span>
+              </>
+            ) : detailContext.type === "tool-detail" ? (
+              <>
                 <span className="text-xs text-muted-foreground">/</span>
                 <span className="text-sm font-medium">
                   {detailContext.label}

@@ -49,7 +49,7 @@ const navGroups: NavGroup[] = [
     title: "Tools",
     items: [
       { id: "packages", label: "Packages", icon: Package },
-      { id: "tools", label: "CLI Tools", icon: Wrench },
+      { id: "tools", label: "AI Tools", icon: Wrench },
     ],
   },
 ];

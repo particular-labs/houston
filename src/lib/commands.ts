@@ -106,6 +106,12 @@ export interface AiToolInfo {
   package_name: string;
   binary_path: string | null;
   install_hint: string;
+  tool_type: "cli" | "app" | "both";
+  app_name: string | null;
+  app_installed: boolean;
+  app_path: string | null;
+  app_version: string | null;
+  config_dir: string | null;
 }
 
 export interface AiToolsReport {

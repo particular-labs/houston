@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,6 +11,14 @@ pub enum InstallMethod {
     BrewCask,
     GhExtension,
     SelfManaged,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolType {
+    Cli,
+    App,
+    Both,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,6 +33,12 @@ pub struct AiToolInfo {
     pub package_name: String,
     pub binary_path: Option<String>,
     pub install_hint: String,
+    pub tool_type: ToolType,
+    pub app_name: Option<String>,
+    pub app_installed: bool,
+    pub app_path: Option<String>,
+    pub app_version: Option<String>,
+    pub config_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +53,10 @@ struct ToolSpec {
     package_name: &'static str,
     install_method: InstallMethod,
     install_hint: &'static str,
+    tool_type: ToolType,
+    app_bundle: Option<&'static str>,
+    config_dir_name: Option<&'static str>,
+    config_dir_alt: Option<&'static str>,
 }
 
 fn tool_registry() -> Vec<ToolSpec> {
@@ -48,6 +67,21 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "@anthropic-ai/claude-code",
             install_method: InstallMethod::Npm,
             install_hint: "npm i -g @anthropic-ai/claude-code",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: Some(".claude"),
+            config_dir_alt: None,
+        },
+        ToolSpec {
+            name: "Claude Desktop",
+            binary: "",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://claude.ai/download",
+            tool_type: ToolType::App,
+            app_bundle: Some("Claude.app"),
+            config_dir_name: Some("Library/Application Support/Claude"),
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "OpenAI Codex CLI",
@@ -55,6 +89,10 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "@openai/codex",
             install_method: InstallMethod::Npm,
             install_hint: "npm i -g @openai/codex",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: None,
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "Gemini CLI",
@@ -62,6 +100,10 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "@google/gemini-cli",
             install_method: InstallMethod::Npm,
             install_hint: "npm i -g @google/gemini-cli",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: None,
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "Aider",
@@ -69,6 +111,10 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "aider-chat",
             install_method: InstallMethod::Pip,
             install_hint: "pip install aider-chat",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: None,
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "Amazon Q Developer",
@@ -76,6 +122,10 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "kiro-cli",
             install_method: InstallMethod::BrewCask,
             install_hint: "brew install --cask kiro-cli",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: None,
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "GitHub Copilot CLI",
@@ -83,6 +133,10 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "gh-copilot",
             install_method: InstallMethod::GhExtension,
             install_hint: "gh extension install github/gh-copilot",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: None,
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "Amp",
@@ -90,6 +144,10 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "",
             install_method: InstallMethod::SelfManaged,
             install_hint: "https://ampcode.com",
+            tool_type: ToolType::Cli,
+            app_bundle: None,
+            config_dir_name: None,
+            config_dir_alt: None,
         },
         ToolSpec {
             name: "Cursor",
@@ -97,8 +155,71 @@ fn tool_registry() -> Vec<ToolSpec> {
             package_name: "",
             install_method: InstallMethod::SelfManaged,
             install_hint: "https://cursor.com",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Cursor.app"),
+            config_dir_name: Some("Library/Application Support/Cursor"),
+            config_dir_alt: None,
+        },
+        ToolSpec {
+            name: "Windsurf",
+            binary: "windsurf",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://windsurf.com",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Windsurf.app"),
+            config_dir_name: Some("Library/Application Support/Windsurf"),
+            config_dir_alt: None,
+        },
+        ToolSpec {
+            name: "Zed",
+            binary: "zed",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://zed.dev",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Zed.app"),
+            config_dir_name: Some("Library/Application Support/Zed"),
+            config_dir_alt: None,
         },
     ]
+}
+
+/// Check if a macOS .app bundle exists in /Applications
+fn check_app_installed(bundle: &str) -> Option<String> {
+    let path = format!("/Applications/{}", bundle);
+    if std::path::Path::new(&path).exists() {
+        Some(path)
+    } else {
+        None
+    }
+}
+
+/// Read CFBundleShortVersionString from an app's Info.plist via `defaults read`
+fn get_app_version(app_path: &str) -> Option<String> {
+    let plist_path = format!("{}/Contents/Info", app_path);
+    let output = Command::new("defaults")
+        .args(["read", &plist_path, "CFBundleShortVersionString"])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !version.is_empty() {
+            return Some(version);
+        }
+    }
+    None
+}
+
+/// Resolve a config directory path from the home directory
+fn resolve_config_dir(home: &str, primary: Option<&str>, _alt: Option<&str>) -> Option<String> {
+    if let Some(dir_name) = primary {
+        let path = PathBuf::from(home).join(dir_name);
+        if path.exists() {
+            return Some(path.to_string_lossy().to_string());
+        }
+    }
+    None
 }
 
 /// npm outdated -g --json → { "pkg": { "current": "x", "latest": "y" } }
@@ -325,6 +446,7 @@ fn extract_version(s: &str) -> String {
 
 pub fn scan() -> AiToolsReport {
     let registry = tool_registry();
+    let home = std::env::var("HOME").unwrap_or_default();
 
     // Phase 1: Run batch commands in parallel
     let npm_handle = std::thread::spawn(fetch_npm_outdated);
@@ -341,6 +463,7 @@ pub fn scan() -> AiToolsReport {
     let tools: Vec<AiToolInfo> = registry
         .into_iter()
         .map(|spec| {
+            // CLI detection
             let binary_path = which_binary(spec.binary);
 
             // For GhExtension, check if the extension is installed
@@ -351,16 +474,32 @@ pub fn scan() -> AiToolsReport {
                 false
             };
 
-            let installed = binary_path.is_some() || gh_installed;
+            let cli_found = binary_path.is_some() || gh_installed;
 
             let version = if is_gh_extension && gh_installed {
                 let v = gh_extensions.get(spec.package_name).cloned();
                 v.filter(|s| !s.is_empty())
-            } else if installed {
+            } else if cli_found {
                 get_version(spec.binary)
             } else {
                 None
             };
+
+            // App detection
+            let app_path = spec.app_bundle.and_then(check_app_installed);
+            let app_installed = app_path.is_some();
+            let app_version = app_path.as_deref().and_then(get_app_version);
+            let app_name = spec.app_bundle.map(|b| b.to_string());
+
+            // installed = depends on tool_type
+            let installed = match spec.tool_type {
+                ToolType::Cli => cli_found,
+                ToolType::App => app_installed,
+                ToolType::Both => cli_found || app_installed,
+            };
+
+            // Resolve config directory
+            let config_dir = resolve_config_dir(&home, spec.config_dir_name, spec.config_dir_alt);
 
             // Cross-reference with batch outdated results
             let (latest_version, update_available) = match spec.install_method {
@@ -410,6 +549,12 @@ pub fn scan() -> AiToolsReport {
                 package_name: spec.package_name.to_string(),
                 binary_path,
                 install_hint: spec.install_hint.to_string(),
+                tool_type: spec.tool_type,
+                app_name,
+                app_installed,
+                app_path,
+                app_version,
+                config_dir,
             }
         })
         .collect();
