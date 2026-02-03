@@ -1,0 +1,121 @@
+use serde::{Deserialize, Serialize};
+use std::process::Command;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitStatus {
+    pub project_path: String,
+    pub branch: String,
+    pub is_dirty: bool,
+    pub modified_count: usize,
+    pub untracked_count: usize,
+    pub staged_count: usize,
+    pub ahead: usize,
+    pub behind: usize,
+    pub last_commit_message: String,
+    pub last_commit_date: String,
+    pub remote_url: String,
+}
+
+pub fn get_status(project_path: &str) -> Option<GitStatus> {
+    // Check if it's a git repo
+    let git_dir = std::path::Path::new(project_path).join(".git");
+    if !git_dir.exists() {
+        return None;
+    }
+
+    let output = Command::new("git")
+        .args(["status", "--porcelain=v2", "--branch"])
+        .current_dir(project_path)
+        .output()
+        .ok()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let mut branch = String::new();
+    let mut ahead = 0;
+    let mut behind = 0;
+    let mut modified_count = 0;
+    let mut untracked_count = 0;
+    let mut staged_count = 0;
+
+    for line in stdout.lines() {
+        if line.starts_with("# branch.head ") {
+            branch = line.strip_prefix("# branch.head ").unwrap_or("").to_string();
+        } else if line.starts_with("# branch.ab ") {
+            let ab = line.strip_prefix("# branch.ab ").unwrap_or("");
+            for part in ab.split_whitespace() {
+                if let Some(n) = part.strip_prefix('+') {
+                    ahead = n.parse().unwrap_or(0);
+                } else if let Some(n) = part.strip_prefix('-') {
+                    behind = n.parse().unwrap_or(0);
+                }
+            }
+        } else if line.starts_with("1 ") || line.starts_with("2 ") {
+            // Changed entries
+            let xy = line.split_whitespace().nth(1).unwrap_or("..");
+            let x = xy.chars().next().unwrap_or('.');
+            let y = xy.chars().nth(1).unwrap_or('.');
+
+            if x != '.' {
+                staged_count += 1;
+            }
+            if y != '.' {
+                modified_count += 1;
+            }
+        } else if line.starts_with("? ") {
+            untracked_count += 1;
+        }
+    }
+
+    // Get last commit info
+    let log_output = Command::new("git")
+        .args(["log", "-1", "--format=%s|%ar"])
+        .current_dir(project_path)
+        .output()
+        .ok();
+
+    let (last_commit_message, last_commit_date) = log_output
+        .map(|o| {
+            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            let parts: Vec<&str> = s.splitn(2, '|').collect();
+            (
+                parts.first().unwrap_or(&"").to_string(),
+                parts.get(1).unwrap_or(&"").to_string(),
+            )
+        })
+        .unwrap_or_default();
+
+    // Get remote URL
+    let remote_output = Command::new("git")
+        .args(["remote", "get-url", "origin"])
+        .current_dir(project_path)
+        .output()
+        .ok();
+
+    let remote_url = remote_output
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default();
+
+    let is_dirty = modified_count > 0 || untracked_count > 0 || staged_count > 0;
+
+    Some(GitStatus {
+        project_path: project_path.to_string(),
+        branch,
+        is_dirty,
+        modified_count,
+        untracked_count,
+        staged_count,
+        ahead,
+        behind,
+        last_commit_message,
+        last_commit_date,
+        remote_url,
+    })
+}
+
+pub fn get_statuses(project_paths: &[String]) -> Vec<GitStatus> {
+    project_paths
+        .iter()
+        .filter_map(|p| get_status(p))
+        .collect()
+}
