@@ -59,11 +59,10 @@ export function AppSidebar() {
 
   return (
     <aside className="flex h-full w-[240px] flex-col border-r border-sidebar-border bg-sidebar">
-      {/* Title bar drag region */}
-      <div
-        data-tauri-drag-region
-        className="flex h-12 shrink-0 items-center px-4 pt-1"
-      >
+      {/* Traffic light inset (macOS overlay titlebar) */}
+      <div data-tauri-drag-region className="h-11 shrink-0" />
+      {/* Title */}
+      <div className="shrink-0 px-4 pb-2">
         <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
           Houston
         </span>

@@ -33,6 +33,7 @@ export function AppShell() {
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
+          <div data-tauri-drag-region className="h-11 shrink-0" />
           <AppHeader />
           <main className="flex-1 overflow-y-auto p-6 scrollbar-thin">
             <ActiveComponent />
