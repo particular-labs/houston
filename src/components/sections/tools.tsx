@@ -2,32 +2,105 @@ import {
   Sparkles,
   Server,
   Settings,
-  FolderOpen,
   ChevronDown,
   ChevronRight,
   CheckCircle2,
   XCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { useClaudeConfig } from "@/hooks/use-claude-config";
+import { useAiTools } from "@/hooks/use-ai-tools";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
 import { CardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
+import type { AiToolInfo } from "@/lib/commands";
+
+function InstalledToolCard({ tool }: { tool: AiToolInfo }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+          <span className="text-sm font-medium">{tool.name}</span>
+        </div>
+        {tool.update_available && (
+          <StatusBadge variant="warning">
+            <ArrowUpCircle className="h-3 w-3" />
+            Update
+          </StatusBadge>
+        )}
+      </div>
+      <div className="mt-2">
+        <span className="text-2xl font-semibold tracking-tight">
+          {tool.version ?? "installed"}
+        </span>
+        {tool.update_available && tool.latest_version && (
+          <span className="ml-2 text-xs text-warning">
+            {tool.latest_version} available
+          </span>
+        )}
+      </div>
+      {tool.binary_path && (
+        <div className="mt-2 flex items-center gap-1">
+          <span className="truncate font-mono text-[10px] text-muted-foreground">
+            {tool.binary_path}
+          </span>
+          <CopyButton value={tool.binary_path} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotDetectedRow({ tools }: { tools: AiToolInfo[] }) {
+  if (tools.length === 0) return null;
+  return (
+    <div className="grid grid-cols-4 gap-3">
+      {tools.map((tool) => (
+        <div
+          key={tool.name}
+          className="flex items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-3 py-2 opacity-50"
+          title={tool.install_hint}
+        >
+          <XCircle className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span className="truncate text-xs text-muted-foreground">
+            {tool.name}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function ToolsSection() {
-  const { data: claude, isLoading, isFetching } = useClaudeConfig();
+  const { data: aiReport, isLoading: aiLoading, isFetching: aiFetching } = useAiTools();
+  const { data: claude, isLoading: claudeLoading, isFetching: claudeFetching } = useClaudeConfig();
   const queryClient = useQueryClient();
   const [mcpExpanded, setMcpExpanded] = useState(true);
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
+  const isLoading = aiLoading || claudeLoading;
+  const isFetching = aiFetching || claudeFetching;
+
+  const installedTools = aiReport?.tools.filter((t) => t.installed) ?? [];
+  const notDetected = aiReport?.tools.filter((t) => !t.installed) ?? [];
+
   return (
     <div className="space-y-6">
       <SectionHeader
-        title="CLI Tools & Config"
-        description="Configuration for developer CLI tools"
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ["claude-config"] })}
+        title="AI CLI Tools"
+        description={
+          aiReport
+            ? `${installedTools.length} tool${installedTools.length !== 1 ? "s" : ""} detected`
+            : "Scanning for AI tools..."
+        }
+        onRefresh={() => {
+          queryClient.invalidateQueries({ queryKey: ["ai-tools"] });
+          queryClient.invalidateQueries({ queryKey: ["claude-config"] });
+        }}
         isRefreshing={isFetching}
       />
 
@@ -35,30 +108,36 @@ export function ToolsSection() {
         <div className="space-y-4">
           <CardSkeleton />
           <CardSkeleton />
+          <CardSkeleton />
         </div>
       ) : (
         <>
-          {/* Claude Code */}
-          <div className="rounded-lg border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-medium">Claude Code</h3>
-              </div>
-              {claude?.installed ? (
+          {/* Installed tools grid */}
+          {installedTools.length > 0 && (
+            <div className="grid grid-cols-3 gap-4">
+              {installedTools.map((tool) => (
+                <InstalledToolCard key={tool.name} tool={tool} />
+              ))}
+            </div>
+          )}
+
+          {/* Not detected row */}
+          <NotDetectedRow tools={notDetected} />
+
+          {/* Claude Config detail card */}
+          {claude?.installed && (
+            <div className="rounded-lg border border-border bg-card">
+              <div className="flex items-center justify-between border-b border-border p-4">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-medium">Claude Code Config</h3>
+                </div>
                 <StatusBadge variant="success">
                   <CheckCircle2 className="h-3 w-3" />
-                  Installed
+                  Configured
                 </StatusBadge>
-              ) : (
-                <StatusBadge variant="error">
-                  <XCircle className="h-3 w-3" />
-                  Not Found
-                </StatusBadge>
-              )}
-            </div>
+              </div>
 
-            {claude?.installed && (
               <div className="p-4">
                 {/* Overview */}
                 <div className="mb-4 grid grid-cols-3 gap-4 text-sm">
@@ -163,8 +242,8 @@ export function ToolsSection() {
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </>
       )}
     </div>

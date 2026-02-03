@@ -3,8 +3,8 @@ mod scanners;
 mod state;
 
 use commands::{
-    action_cmds, claude_cmds, diagnostics_cmds, env_cmds, language_cmds, package_cmds,
-    system_cmds, workspace_cmds,
+    action_cmds, ai_tools_cmds, claude_cmds, diagnostics_cmds, env_cmds, language_cmds,
+    package_cmds, system_cmds, workspace_cmds,
 };
 use state::AppState;
 
@@ -49,6 +49,9 @@ pub fn run() {
             diagnostics_cmds::get_diagnostics,
             diagnostics_cmds::refresh_diagnostics,
             diagnostics_cmds::run_diagnostic_fix,
+            // AI Tools
+            ai_tools_cmds::get_ai_tools,
+            ai_tools_cmds::refresh_ai_tools,
         ])
         .setup(|app| {
             // Apply macOS vibrancy

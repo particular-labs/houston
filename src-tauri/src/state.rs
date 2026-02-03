@@ -38,6 +38,7 @@ impl<T: Clone> ScanCache<T> {
 }
 
 use crate::scanners::{
+    ai_tools::AiToolsReport,
     claude::ClaudeConfig,
     diagnostics::DiagnosticReport,
     environment::EnvVarInfo,
@@ -60,6 +61,7 @@ pub struct AppState {
     pub package_cache: Mutex<ScanCache<PackageList>>,
     pub claude_cache: Mutex<ScanCache<ClaudeConfig>>,
     pub diagnostics_cache: Mutex<ScanCache<DiagnosticReport>>,
+    pub ai_tools_cache: Mutex<ScanCache<AiToolsReport>>,
 }
 
 impl AppState {
@@ -75,6 +77,7 @@ impl AppState {
             package_cache: Mutex::new(ScanCache::new(300)),
             claude_cache: Mutex::new(ScanCache::new(300)),
             diagnostics_cache: Mutex::new(ScanCache::new(120)),
+            ai_tools_cache: Mutex::new(ScanCache::new(120)),
         }
     }
 }

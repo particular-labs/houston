@@ -1,3 +1,4 @@
+pub mod ai_tools;
 pub mod claude;
 pub mod diagnostics;
 pub mod environment;

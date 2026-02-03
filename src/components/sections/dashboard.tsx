@@ -12,7 +12,8 @@ import { useSystemInfo } from "@/hooks/use-system-info";
 import { usePathEntries } from "@/hooks/use-path-entries";
 import { useLanguages } from "@/hooks/use-languages";
 import { useAllGitStatuses } from "@/hooks/use-git-status";
-import { useDiagnostics } from "@/hooks/use-diagnostics";
+import { useQuery } from "@tanstack/react-query";
+import { commands } from "@/lib/commands";
 import { StatusDot } from "@/components/shared/status-dot";
 import { CardSkeleton } from "@/components/shared/skeleton";
 import { useNavigationStore } from "@/stores/navigation";
@@ -60,7 +61,13 @@ export function Dashboard() {
   const { data: paths, isLoading: pathsLoading } = usePathEntries();
   const { data: languages, isLoading: langsLoading } = useLanguages();
   const { data: gitStatuses } = useAllGitStatuses();
-  const { data: diagnosticsReport } = useDiagnostics();
+  // Read diagnostics from cache only -- don't trigger the scan from dashboard
+  const { data: diagnosticsReport } = useQuery({
+    queryKey: ["diagnostics"],
+    queryFn: commands.getDiagnostics,
+    staleTime: 120_000,
+    enabled: false,
+  });
   const setSection = useNavigationStore((s) => s.setActiveSection);
 
   const isLoading = systemLoading || pathsLoading || langsLoading;

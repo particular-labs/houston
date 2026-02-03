@@ -94,6 +94,25 @@ export interface ClaudeConfig {
   settings_summary: string[];
 }
 
+// AI Tools types
+export interface AiToolInfo {
+  name: string;
+  binary: string;
+  installed: boolean;
+  version: string | null;
+  latest_version: string | null;
+  update_available: boolean;
+  install_method: "npm" | "pip" | "brew_cask" | "gh_extension" | "self_managed";
+  package_name: string;
+  binary_path: string | null;
+  install_hint: string;
+}
+
+export interface AiToolsReport {
+  tools: AiToolInfo[];
+  scanned_at: string;
+}
+
 // Diagnostics types
 export interface DiagnosticItem {
   id: string;
@@ -159,6 +178,10 @@ export const commands = {
   openInEditor: (path: string) => invoke<void>("open_in_editor", { path }),
   openClaudeCode: (path: string) =>
     invoke<void>("open_claude_code", { path }),
+
+  // AI Tools
+  getAiTools: () => invoke<AiToolsReport>("get_ai_tools"),
+  refreshAiTools: () => invoke<AiToolsReport>("refresh_ai_tools"),
 
   // Diagnostics
   getDiagnostics: () => invoke<DiagnosticReport>("get_diagnostics"),
