@@ -309,9 +309,7 @@ struct BrewOutdated {
 
 fn fetch_brew_outdated() -> HashMap<String, BrewOutdated> {
     let mut map = HashMap::new();
-    let output = Command::new("brew")
-        .args(["outdated", "--json"])
-        .output();
+    let output = Command::new("brew").args(["outdated", "--json"]).output();
     if let Ok(out) = output {
         if out.status.success() {
             let stdout = String::from_utf8_lossy(&out.stdout);
@@ -373,9 +371,7 @@ fn fetch_brew_outdated() -> HashMap<String, BrewOutdated> {
 /// gh extension list → tab-separated text, no --json flag
 fn fetch_gh_extensions() -> HashMap<String, String> {
     let mut map = HashMap::new();
-    let output = Command::new("gh")
-        .args(["extension", "list"])
-        .output();
+    let output = Command::new("gh").args(["extension", "list"]).output();
     if let Ok(out) = output {
         if out.status.success() {
             let stdout = String::from_utf8_lossy(&out.stdout);
@@ -431,12 +427,7 @@ fn extract_version(s: &str) -> String {
     // Try to find a semver-like pattern
     for word in s.split_whitespace() {
         let trimmed = word.trim_start_matches('v').trim_start_matches('V');
-        if trimmed
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_digit())
-            && trimmed.contains('.')
-        {
+        if trimmed.chars().next().map_or(false, |c| c.is_ascii_digit()) && trimmed.contains('.') {
             return trimmed.to_string();
         }
     }
@@ -533,10 +524,7 @@ pub fn scan() -> AiToolsReport {
                     }
                     InstallMethod::BrewCask => {
                         if let Some(info) = brew_outdated.get(spec.package_name) {
-                            (
-                                Some(info.current.clone()),
-                                info.installed != info.current,
-                            )
+                            (Some(info.current.clone()), info.installed != info.current)
                         } else {
                             (None, false)
                         }
@@ -567,10 +555,7 @@ pub fn scan() -> AiToolsReport {
         })
         .collect();
 
-    let tools: Vec<AiToolInfo> = handles
-        .into_iter()
-        .map(|h| h.join().unwrap())
-        .collect();
+    let tools: Vec<AiToolInfo> = handles.into_iter().map(|h| h.join().unwrap()).collect();
 
     AiToolsReport {
         tools,

@@ -64,7 +64,11 @@ fn categorize_var(key: &str) -> String {
         || key_upper.contains("CREDENTIAL")
     {
         "Sensitive".to_string()
-    } else if key_upper.starts_with("XDG") || key_upper == "HOME" || key_upper == "USER" || key_upper == "LOGNAME" {
+    } else if key_upper.starts_with("XDG")
+        || key_upper == "HOME"
+        || key_upper == "USER"
+        || key_upper == "LOGNAME"
+    {
         "System".to_string()
     } else {
         "Other".to_string()
@@ -78,7 +82,7 @@ pub fn scan() -> Vec<EnvVarInfo> {
             // Mask sensitive values
             let display_value = if category == "Sensitive" {
                 if value.len() > 8 {
-                    format!("{}...{}", &value[..4], &value[value.len()-4..])
+                    format!("{}...{}", &value[..4], &value[value.len() - 4..])
                 } else {
                     "••••••••".to_string()
                 }

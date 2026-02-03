@@ -1,9 +1,12 @@
-import { Settings, Trash2, Clock, HardDrive, Hash } from "lucide-react";
+import { Settings, Trash2, Clock, HardDrive, Hash, Download, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useAppStats } from "@/hooks/use-app-stats";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 function formatUptime(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -26,12 +29,48 @@ function hitRate(hits: number, misses: number): string {
   return `${((hits / total) * 100).toFixed(0)}%`;
 }
 
+type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
+
 export function SettingsSection() {
   const { data: stats, isLoading } = useAppStats();
   const queryClient = useQueryClient();
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
+  const [updateVersion, setUpdateVersion] = useState<string>("");
+  const [updateError, setUpdateError] = useState<string>("");
 
   const handleClearCaches = () => {
     queryClient.invalidateQueries();
+  };
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus("checking");
+    setUpdateError("");
+    try {
+      const update = await check();
+      if (update?.available) {
+        setUpdateVersion(update.version);
+        setUpdateStatus("available");
+      } else {
+        setUpdateStatus("up-to-date");
+      }
+    } catch (e) {
+      setUpdateError(e instanceof Error ? e.message : String(e));
+      setUpdateStatus("error");
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setUpdateStatus("downloading");
+    try {
+      const update = await check();
+      if (update?.available) {
+        await update.downloadAndInstall();
+        await relaunch();
+      }
+    } catch (e) {
+      setUpdateError(e instanceof Error ? e.message : String(e));
+      setUpdateStatus("error");
+    }
   };
 
   if (isLoading || !stats) {
@@ -81,6 +120,52 @@ export function SettingsSection() {
           </div>
           <div className="font-mono text-lg font-semibold">
             {formatBytes(stats.memory_bytes)}
+          </div>
+        </div>
+      </div>
+
+      {/* Updates */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Download className="h-4 w-4 text-muted-foreground" />
+              Software Update
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {updateStatus === "idle" && "Check for new versions of Houston."}
+              {updateStatus === "checking" && "Checking for updates..."}
+              {updateStatus === "up-to-date" && "Houston is up to date."}
+              {updateStatus === "available" && `Version ${updateVersion} is available.`}
+              {updateStatus === "downloading" && "Downloading and installing update..."}
+              {updateStatus === "error" && (updateError || "Failed to check for updates.")}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {updateStatus === "checking" || updateStatus === "downloading" ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : updateStatus === "up-to-date" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            ) : updateStatus === "error" ? (
+              <AlertCircle className="h-4 w-4 text-red-400" />
+            ) : null}
+            {updateStatus === "available" ? (
+              <button
+                onClick={handleInstallUpdate}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Download className="h-3 w-3" />
+                Install Update
+              </button>
+            ) : (
+              <button
+                onClick={handleCheckUpdate}
+                disabled={updateStatus === "checking" || updateStatus === "downloading"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+              >
+                Check for Updates
+              </button>
+            )}
           </div>
         </div>
       </div>

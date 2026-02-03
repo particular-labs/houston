@@ -64,11 +64,7 @@ pub fn scan() -> SystemInfo {
         .unwrap_or_default();
 
     // Extract just the version number from shell version string
-    let shell_version = shell_version
-        .lines()
-        .next()
-        .unwrap_or("")
-        .to_string();
+    let shell_version = shell_version.lines().next().unwrap_or("").to_string();
 
     let cpu_brand = if cfg!(target_os = "macos") {
         run_cmd("sysctl", &["-n", "machdep.cpu.brand_string"])

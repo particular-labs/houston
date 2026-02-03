@@ -102,16 +102,9 @@ pub struct AppStatsSnapshot {
 }
 
 use crate::scanners::{
-    ai_tools::AiToolsReport,
-    claude::ClaudeConfig,
-    diagnostics::DiagnosticReport,
-    environment::EnvVarInfo,
-    git::GitStatus,
-    languages::LanguageInfo,
-    packages::PackageList,
-    path::PathEntry,
-    system::SystemInfo,
-    workspace::ProjectInfo,
+    ai_tools::AiToolsReport, claude::ClaudeConfig, diagnostics::DiagnosticReport,
+    environment::EnvVarInfo, git::GitStatus, languages::LanguageInfo, packages::PackageList,
+    path::PathEntry, system::SystemInfo, workspace::ProjectInfo,
 };
 
 pub struct AppState {

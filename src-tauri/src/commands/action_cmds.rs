@@ -39,11 +39,7 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
     let editors = ["code", "cursor", "zed", "subl"];
 
     for editor in &editors {
-        if Command::new(editor)
-            .arg(&path)
-            .spawn()
-            .is_ok()
-        {
+        if Command::new(editor).arg(&path).spawn().is_ok() {
             return Ok(());
         }
     }

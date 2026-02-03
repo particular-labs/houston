@@ -11,7 +11,9 @@ pub fn get_claude_config(state: State<'_, AppState>) -> claude::ClaudeConfig {
     }
     let start = std::time::Instant::now();
     let config = claude::scan();
-    state.claude_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .claude_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(config.clone());
     config
 }
@@ -22,7 +24,9 @@ pub fn refresh_claude_config(state: State<'_, AppState>) -> claude::ClaudeConfig
     cache.invalidate();
     let start = std::time::Instant::now();
     let config = claude::scan();
-    state.claude_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .claude_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(config.clone());
     config
 }

@@ -11,7 +11,9 @@ pub fn get_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> 
     }
     let start = std::time::Instant::now();
     let vars = environment::scan();
-    state.env_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .env_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(vars.clone());
     vars
 }
@@ -22,7 +24,9 @@ pub fn refresh_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarIn
     cache.invalidate();
     let start = std::time::Instant::now();
     let vars = environment::scan();
-    state.env_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .env_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(vars.clone());
     vars
 }

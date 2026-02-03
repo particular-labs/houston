@@ -1,4 +1,4 @@
-use crate::state::{AppStatsSnapshot, AppState, ScannerStatsSnapshot};
+use crate::state::{AppState, AppStatsSnapshot, ScannerStatsSnapshot};
 use std::sync::atomic::Ordering;
 use tauri::State;
 
@@ -46,7 +46,12 @@ pub fn get_app_stats(state: State<'_, AppState>) -> AppStatsSnapshot {
         },
         {
             let c = state.language_cache.lock().unwrap();
-            snapshot_scanner("Languages", &state.language_stats, c.ttl_secs(), c.is_warm())
+            snapshot_scanner(
+                "Languages",
+                &state.language_stats,
+                c.ttl_secs(),
+                c.is_warm(),
+            )
         },
         {
             let c = state.env_cache.lock().unwrap();
@@ -70,7 +75,12 @@ pub fn get_app_stats(state: State<'_, AppState>) -> AppStatsSnapshot {
         },
         {
             let c = state.diagnostics_cache.lock().unwrap();
-            snapshot_scanner("Diagnostics", &state.diagnostics_stats, c.ttl_secs(), c.is_warm())
+            snapshot_scanner(
+                "Diagnostics",
+                &state.diagnostics_stats,
+                c.ttl_secs(),
+                c.is_warm(),
+            )
         },
         {
             let c = state.ai_tools_cache.lock().unwrap();

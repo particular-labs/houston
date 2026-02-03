@@ -45,9 +45,7 @@ fn scan_npm_global() -> Vec<PackageInfo> {
 }
 
 fn scan_brew() -> Vec<PackageInfo> {
-    let output = Command::new("brew")
-        .args(["list", "--versions"])
-        .output();
+    let output = Command::new("brew").args(["list", "--versions"]).output();
 
     match output {
         Ok(o) if o.status.success() => {
@@ -96,9 +94,7 @@ fn scan_pip() -> Vec<PackageInfo> {
 }
 
 fn scan_cargo() -> Vec<PackageInfo> {
-    let output = Command::new("cargo")
-        .args(["install", "--list"])
-        .output();
+    let output = Command::new("cargo").args(["install", "--list"]).output();
 
     match output {
         Ok(o) if o.status.success() => {
@@ -112,7 +108,10 @@ fn scan_cargo() -> Vec<PackageInfo> {
                     if parts.len() == 2 {
                         Some(PackageInfo {
                             name: parts[0].to_string(),
-                            version: parts[1].trim_end_matches(':').trim_start_matches('v').to_string(),
+                            version: parts[1]
+                                .trim_end_matches(':')
+                                .trim_start_matches('v')
+                                .to_string(),
                         })
                     } else {
                         None

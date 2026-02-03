@@ -53,10 +53,7 @@ pub fn scan() -> ClaudeConfig {
         if let Ok(content) = fs::read_to_string(&settings_path) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                 // Parse MCP servers
-                if let Some(servers) = json
-                    .get("mcpServers")
-                    .and_then(|s| s.as_object())
-                {
+                if let Some(servers) = json.get("mcpServers").and_then(|s| s.as_object()) {
                     for (name, config) in servers {
                         let command = config
                             .get("command")
@@ -103,7 +100,12 @@ pub fn scan() -> ClaudeConfig {
     let projects_dir = claude_dir.join("projects");
     let project_count = if projects_dir.exists() {
         fs::read_dir(&projects_dir)
-            .map(|entries| entries.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).count())
+            .map(|entries| {
+                entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.path().is_dir())
+                    .count()
+            })
             .unwrap_or(0)
     } else {
         0

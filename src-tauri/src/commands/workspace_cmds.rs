@@ -126,10 +126,8 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
                     project.group_type = "worktree".to_string();
                     // Keep is_monorepo_root = true so the frontend knows
                     // these worktrees can be drilled into for packages
-                    project.worktree_id = worktree_map
-                        .get(&project.path)
-                        .cloned()
-                        .unwrap_or_default();
+                    project.worktree_id =
+                        worktree_map.get(&project.path).cloned().unwrap_or_default();
                 }
             }
         }
@@ -143,7 +141,9 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
             .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
 
-    state.project_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .project_stats
+        .record_miss(start.elapsed().as_millis() as u64);
 
     // Cache it
     let mut cache = state.project_cache.lock().unwrap();
@@ -178,7 +178,9 @@ pub fn get_all_git_statuses(state: State<'_, AppState>) -> Vec<git::GitStatus> {
 
     let start = std::time::Instant::now();
     let statuses = git::get_statuses(&project_paths);
-    state.git_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .git_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(statuses.clone());
     statuses
 }

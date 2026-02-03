@@ -387,12 +387,11 @@ fn detect_npm_workspaces(root: &Path) -> Option<Vec<String>> {
     // "workspaces" can be an array or an object with a "packages" key (yarn)
     let arr = match json.get("workspaces") {
         Some(serde_json::Value::Array(a)) => a.clone(),
-        Some(serde_json::Value::Object(obj)) => {
-            obj.get("packages")
-                .and_then(|v| v.as_array())
-                .cloned()
-                .unwrap_or_default()
-        }
+        Some(serde_json::Value::Object(obj)) => obj
+            .get("packages")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default(),
         _ => return None,
     };
 

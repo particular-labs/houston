@@ -40,7 +40,10 @@ pub fn get_status(project_path: &str) -> Option<GitStatus> {
 
     for line in stdout.lines() {
         if line.starts_with("# branch.head ") {
-            branch = line.strip_prefix("# branch.head ").unwrap_or("").to_string();
+            branch = line
+                .strip_prefix("# branch.head ")
+                .unwrap_or("")
+                .to_string();
         } else if line.starts_with("# branch.ab ") {
             let ab = line.strip_prefix("# branch.ab ").unwrap_or("");
             for part in ab.split_whitespace() {

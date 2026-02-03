@@ -11,7 +11,9 @@ pub fn get_diagnostics(state: State<'_, AppState>) -> diagnostics::DiagnosticRep
     }
     let start = std::time::Instant::now();
     let report = diagnostics::scan();
-    state.diagnostics_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .diagnostics_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(report.clone());
     report
 }
@@ -22,7 +24,9 @@ pub fn refresh_diagnostics(state: State<'_, AppState>) -> diagnostics::Diagnosti
     cache.invalidate();
     let start = std::time::Instant::now();
     let report = diagnostics::scan();
-    state.diagnostics_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .diagnostics_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(report.clone());
     report
 }

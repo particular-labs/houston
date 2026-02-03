@@ -30,7 +30,8 @@ fn categorize_path(path: &str) -> String {
         "User Local".to_string()
     } else if path.starts_with("/usr/local") {
         "Usr Local".to_string()
-    } else if path.starts_with("/usr/bin") || path.starts_with("/bin") || path.starts_with("/sbin") {
+    } else if path.starts_with("/usr/bin") || path.starts_with("/bin") || path.starts_with("/sbin")
+    {
         "System".to_string()
     } else if path.starts_with("/opt") {
         "Opt".to_string()

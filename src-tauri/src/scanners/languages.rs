@@ -25,7 +25,10 @@ fn parse_version_generic(output: &str) -> String {
     output
         .split_whitespace()
         .find(|word| {
-            word.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false)
+            word.chars()
+                .next()
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
                 && word.contains('.')
         })
         .unwrap_or_else(|| output.lines().next().unwrap_or(output))
@@ -38,11 +41,7 @@ fn parse_java_version(output: &str) -> String {
     output
         .lines()
         .next()
-        .and_then(|line| {
-            line.split('"')
-                .nth(1)
-                .map(|v| v.to_string())
-        })
+        .and_then(|line| line.split('"').nth(1).map(|v| v.to_string()))
         .unwrap_or_else(|| parse_version_generic(output))
 }
 
@@ -261,8 +260,5 @@ pub fn scan() -> Vec<LanguageInfo> {
         })
         .collect();
 
-    handles
-        .into_iter()
-        .map(|h| h.join().unwrap())
-        .collect()
+    handles.into_iter().map(|h| h.join().unwrap()).collect()
 }

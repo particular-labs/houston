@@ -11,7 +11,9 @@ pub fn get_languages(state: State<'_, AppState>) -> Vec<languages::LanguageInfo>
     }
     let start = std::time::Instant::now();
     let langs = languages::scan();
-    state.language_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .language_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(langs.clone());
     langs
 }
@@ -22,7 +24,9 @@ pub fn refresh_languages(state: State<'_, AppState>) -> Vec<languages::LanguageI
     cache.invalidate();
     let start = std::time::Instant::now();
     let langs = languages::scan();
-    state.language_stats.record_miss(start.elapsed().as_millis() as u64);
+    state
+        .language_stats
+        .record_miss(start.elapsed().as_millis() as u64);
     cache.set(langs.clone());
     langs
 }

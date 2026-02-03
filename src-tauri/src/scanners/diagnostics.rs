@@ -56,9 +56,7 @@ fn run_cmd_full(cmd: &str, args: &[&str]) -> Option<(String, String, bool)> {
 }
 
 fn check_outdated_brew() -> Vec<DiagnosticItem> {
-    let output = Command::new("brew")
-        .args(["outdated", "--json"])
-        .output();
+    let output = Command::new("brew").args(["outdated", "--json"]).output();
 
     match output {
         Ok(o) if o.status.success() => {
@@ -84,10 +82,7 @@ fn check_outdated_brew() -> Vec<DiagnosticItem> {
                                 category: "packages".to_string(),
                                 severity: Severity::Warning,
                                 title: format!("{} is outdated", name),
-                                description: format!(
-                                    "Installed: {}, Latest: {}",
-                                    current, latest
-                                ),
+                                description: format!("Installed: {}, Latest: {}", current, latest),
                                 details: None,
                                 fix_id: Some(format!("brew_upgrade:{}", name)),
                                 fix_label: Some(format!("Upgrade {}", name)),
@@ -115,14 +110,9 @@ fn check_outdated_npm() -> Vec<DiagnosticItem> {
                     return obj
                         .iter()
                         .filter_map(|(name, info)| {
-                            let current = info
-                                .get("current")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("?");
-                            let latest = info
-                                .get("latest")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("?");
+                            let current =
+                                info.get("current").and_then(|v| v.as_str()).unwrap_or("?");
+                            let latest = info.get("latest").and_then(|v| v.as_str()).unwrap_or("?");
                             if current == latest {
                                 return None;
                             }
@@ -131,10 +121,7 @@ fn check_outdated_npm() -> Vec<DiagnosticItem> {
                                 category: "packages".to_string(),
                                 severity: Severity::Warning,
                                 title: format!("{} is outdated", name),
-                                description: format!(
-                                    "Installed: {}, Latest: {}",
-                                    current, latest
-                                ),
+                                description: format!("Installed: {}, Latest: {}", current, latest),
                                 details: None,
                                 fix_id: Some(format!("npm_update:{}", name)),
                                 fix_label: Some(format!("Update {}", name)),
@@ -169,10 +156,7 @@ fn check_outdated_pip() -> Vec<DiagnosticItem> {
                             category: "packages".to_string(),
                             severity: Severity::Info,
                             title: format!("{} is outdated", name),
-                            description: format!(
-                                "Installed: {}, Latest: {}",
-                                current, latest
-                            ),
+                            description: format!("Installed: {}, Latest: {}", current, latest),
                             details: None,
                             fix_id: Some(format!("pip_upgrade:{}", name)),
                             fix_label: Some(format!("Upgrade {}", name)),
@@ -187,11 +171,10 @@ fn check_outdated_pip() -> Vec<DiagnosticItem> {
 }
 
 fn check_brew_doctor() -> Vec<DiagnosticItem> {
-    let (stdout, stderr, success) =
-        match run_cmd_full("brew", &["doctor"]) {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
+    let (stdout, stderr, success) = match run_cmd_full("brew", &["doctor"]) {
+        Some(r) => r,
+        None => return Vec::new(),
+    };
 
     if success {
         return Vec::new();
@@ -212,7 +195,11 @@ fn check_brew_doctor() -> Vec<DiagnosticItem> {
                     id: format!("brew_doctor_{}", items.len()),
                     category: "brew".to_string(),
                     severity: Severity::Warning,
-                    title: current_warning.lines().next().unwrap_or("Brew warning").to_string(),
+                    title: current_warning
+                        .lines()
+                        .next()
+                        .unwrap_or("Brew warning")
+                        .to_string(),
                     description: current_warning.clone(),
                     details: None,
                     fix_id: if has_cleanup {
@@ -242,7 +229,11 @@ fn check_brew_doctor() -> Vec<DiagnosticItem> {
             id: format!("brew_doctor_{}", items.len()),
             category: "brew".to_string(),
             severity: Severity::Warning,
-            title: current_warning.lines().next().unwrap_or("Brew warning").to_string(),
+            title: current_warning
+                .lines()
+                .next()
+                .unwrap_or("Brew warning")
+                .to_string(),
             description: current_warning,
             details: None,
             fix_id: if has_cleanup {
@@ -343,11 +334,7 @@ fn check_duplicate_binaries() -> Vec<DiagnosticItem> {
                     category: "binaries".to_string(),
                     severity: Severity::Info,
                     title: format!("Multiple {} installations", bin),
-                    description: format!(
-                        "Found {} installations of {}",
-                        paths.len(),
-                        bin
-                    ),
+                    description: format!("Found {} installations of {}", paths.len(), bin),
                     details: Some(paths.join("\n")),
                     fix_id: None,
                     fix_label: None,
@@ -429,8 +416,14 @@ fn check_shell_config() -> Vec<DiagnosticItem> {
 
 fn check_environment_tools() -> Vec<DiagnosticItem> {
     let tools: Vec<(&str, &str)> = vec![
-        ("git-lfs", "Git Large File Storage for managing large files in git"),
-        ("gpg", "GNU Privacy Guard for signing commits and encrypting data"),
+        (
+            "git-lfs",
+            "Git Large File Storage for managing large files in git",
+        ),
+        (
+            "gpg",
+            "GNU Privacy Guard for signing commits and encrypting data",
+        ),
         ("jq", "Command-line JSON processor"),
         ("gh", "GitHub CLI for managing repos, PRs, and issues"),
     ];
