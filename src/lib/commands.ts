@@ -47,6 +47,9 @@ export interface ProjectInfo {
   description: string;
   has_git: boolean;
   group: string;
+  group_type: string;
+  is_monorepo_root: boolean;
+  worktree_id: string;
 }
 
 export interface GitStatus {
@@ -116,6 +119,8 @@ export const commands = {
   getGitStatus: (projectPath: string) =>
     invoke<GitStatus | null>("get_git_status", { projectPath }),
   getAllGitStatuses: () => invoke<GitStatus[]>("get_all_git_statuses"),
+  getMonorepoPackages: (rootPath: string) =>
+    invoke<ProjectInfo[]>("get_monorepo_packages", { rootPath }),
 
   // Packages
   getPackages: () => invoke<PackageList>("get_packages"),

@@ -33,6 +33,7 @@ pub fn run() {
             workspace_cmds::scan_projects,
             workspace_cmds::get_git_status,
             workspace_cmds::get_all_git_statuses,
+            workspace_cmds::get_monorepo_packages,
             // Packages
             package_cmds::get_packages,
             package_cmds::refresh_packages,

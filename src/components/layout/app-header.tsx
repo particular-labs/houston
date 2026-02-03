@@ -15,7 +15,8 @@ const sectionLabels: Record<Section, string> = {
 };
 
 export function AppHeader() {
-  const { activeSection, toggleCommandPalette } = useNavigationStore();
+  const { activeSection, detailContext, setDetailContext, toggleCommandPalette } =
+    useNavigationStore();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -34,9 +35,48 @@ export function AppHeader() {
       <div className="flex items-center gap-2" data-tauri-drag-region>
         <span className="text-sm text-muted-foreground">Houston</span>
         <span className="text-xs text-muted-foreground">/</span>
-        <span className="text-sm font-medium">
-          {sectionLabels[activeSection]}
-        </span>
+        {detailContext ? (
+          <>
+            <button
+              onClick={() => setDetailContext(null)}
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {sectionLabels[activeSection]}
+            </button>
+            {detailContext.type === "monorepo-detail" ? (
+              <>
+                <span className="text-xs text-muted-foreground">/</span>
+                <button
+                  onClick={() =>
+                    setDetailContext({
+                      type: "project-group",
+                      groupName: detailContext.parentGroupName,
+                      label: detailContext.parentGroupName,
+                    })
+                  }
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {detailContext.parentGroupName}
+                </button>
+                <span className="text-xs text-muted-foreground">/</span>
+                <span className="text-sm font-medium">
+                  {detailContext.label}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-xs text-muted-foreground">/</span>
+                <span className="text-sm font-medium">
+                  {detailContext.label}
+                </span>
+              </>
+            )}
+          </>
+        ) : (
+          <span className="text-sm font-medium">
+            {sectionLabels[activeSection]}
+          </span>
+        )}
       </div>
 
       {/* Right: actions */}

@@ -118,7 +118,8 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
                         .cloned()
                         .unwrap_or_default();
                     project.group_type = "worktree".to_string();
-                    project.is_monorepo_root = false;
+                    // Keep is_monorepo_root = true so the frontend knows
+                    // these worktrees can be drilled into for packages
                     project.worktree_id = worktree_map
                         .get(&project.path)
                         .cloned()
@@ -169,4 +170,9 @@ pub fn get_all_git_statuses(state: State<'_, AppState>) -> Vec<git::GitStatus> {
     let statuses = git::get_statuses(&project_paths);
     cache.set(statuses.clone());
     statuses
+}
+
+#[tauri::command]
+pub fn get_monorepo_packages(root_path: String) -> Vec<workspace::ProjectInfo> {
+    workspace::scan_monorepo_packages(&root_path)
 }

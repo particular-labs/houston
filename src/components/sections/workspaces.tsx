@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FolderPlus,
   FolderX,
@@ -6,11 +6,16 @@ import {
   GitCommit,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
   Terminal,
   Code2,
   Sparkles,
   FolderOpen,
   Folder,
+  Package,
+  ChevronRight,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import {
   useProjects,
@@ -20,14 +25,17 @@ import {
 } from "@/hooks/use-workspaces";
 import { useGitStatus } from "@/hooks/use-git-status";
 import { commands, type ProjectInfo } from "@/lib/commands";
+import { useNavigationStore } from "@/stores/navigation";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusDot } from "@/components/shared/status-dot";
 import { CopyButton } from "@/components/shared/copy-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CardSkeleton } from "@/components/shared/skeleton";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useCollapsibleSections } from "@/hooks/use-collapsible-sections";
+import { groupBySubfolder } from "@/lib/group-by-subfolder";
 
 function ProjectCard({ project }: { project: ProjectInfo }) {
   const { data: git } = useGitStatus(project.has_git ? project.path : "");
@@ -44,6 +52,9 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
           )}
         </div>
         <div className="ml-2 flex items-center gap-1">
+          {project.is_monorepo_root && (
+            <StatusBadge variant="neutral">root</StatusBadge>
+          )}
           <StatusBadge variant="info">{project.project_type}</StatusBadge>
         </div>
       </div>
@@ -135,8 +146,13 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
 
 interface ProjectGroup {
   name: string;
+  type: string;
   projects: ProjectInfo[];
 }
+
+type PageItem =
+  | { kind: "group"; group: ProjectGroup }
+  | { kind: "project"; project: ProjectInfo };
 
 function useGroupedProjects(projects: ProjectInfo[] | undefined): ProjectGroup[] {
   return useMemo(() => {
@@ -157,7 +173,7 @@ function useGroupedProjects(projects: ProjectInfo[] | undefined): ProjectGroup[]
     // Top-level projects first (empty group)
     const topLevel = groupMap.get("");
     if (topLevel && topLevel.length > 0) {
-      groups.push({ name: "", projects: topLevel });
+      groups.push({ name: "", type: "", projects: topLevel });
     }
 
     // Then named groups, sorted alphabetically
@@ -166,12 +182,324 @@ function useGroupedProjects(projects: ProjectInfo[] | undefined): ProjectGroup[]
       .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
     for (const key of sortedKeys) {
-      groups.push({ name: key, projects: groupMap.get(key)! });
+      const items = groupMap.get(key)!;
+      const type = items[0]?.group_type || "folder";
+      groups.push({ name: key, type, projects: items });
     }
 
     return groups;
   }, [projects]);
 }
+
+function SubfolderAccordion({
+  categories,
+  toggle,
+  isExpanded,
+}: {
+  categories: [string, ProjectInfo[]][];
+  toggle: (key: string) => void;
+  isExpanded: (key: string) => boolean;
+}) {
+  return (
+    <>
+      {categories.map(([category, categoryProjects]) => (
+        <div key={category} className="rounded-md border border-border">
+          <button
+            onClick={() => toggle(category)}
+            className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/30"
+          >
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+              {category}/ ({categoryProjects.length})
+            </div>
+            {isExpanded(category) ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+          {isExpanded(category) && (
+            <div className="border-t border-border p-4">
+              <div className="grid grid-cols-2 gap-4">
+                {categoryProjects.map((project) => (
+                  <ProjectCard key={project.path} project={project} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function GroupSummaryCard({ group }: { group: ProjectGroup }) {
+  const setDetailContext = useNavigationStore((s) => s.setDetailContext);
+
+  const rootProject = group.projects.find((p) => p.is_monorepo_root);
+  const subProjects = group.projects.filter((p) => !p.is_monorepo_root);
+  const displayCount = group.type === "worktree" ? group.projects.length : subProjects.length;
+  const rootPath = rootProject?.path ?? group.projects[0]?.path ?? "";
+
+  const frameworks = useMemo(() => {
+    const unique = new Set<string>();
+    for (const p of group.projects) {
+      if (p.framework) unique.add(p.framework);
+    }
+    return Array.from(unique);
+  }, [group.projects]);
+
+  const Icon =
+    group.type === "monorepo"
+      ? Package
+      : group.type === "worktree"
+        ? GitBranch
+        : Folder;
+  const badgeLabel =
+    group.type === "monorepo"
+      ? "monorepo"
+      : group.type === "worktree"
+        ? "worktrees"
+        : "folder";
+
+  return (
+    <button
+      onClick={() =>
+        setDetailContext({
+          type: "project-group",
+          groupName: group.name,
+          label: group.name,
+        })
+      }
+      className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent/30"
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">{group.name}</h3>
+          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            {badgeLabel}
+          </span>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </div>
+
+      {rootProject?.description && (
+        <p className="mt-1 truncate text-xs text-muted-foreground">
+          {rootProject.description}
+        </p>
+      )}
+
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">
+          {displayCount}{" "}
+          {group.type === "monorepo"
+            ? "package"
+            : group.type === "worktree"
+              ? "worktree"
+              : "project"}
+          {displayCount !== 1 ? "s" : ""}
+        </span>
+        {frameworks.length > 0 && (
+          <div className="flex items-center gap-1">
+            {frameworks.slice(0, 3).map((fw) => (
+              <StatusBadge key={fw} variant="neutral">
+                {fw}
+              </StatusBadge>
+            ))}
+            {frameworks.length > 3 && (
+              <span className="text-[10px] text-muted-foreground">
+                +{frameworks.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2">
+        <span className="max-w-[300px] truncate font-mono text-[10px] text-muted-foreground">
+          {rootPath}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function ProjectGroupDetail({ groupName }: { groupName: string }) {
+  const { data: projects } = useProjects();
+  const setDetailContext = useNavigationStore((s) => s.setDetailContext);
+  const { toggle, isExpanded } = useCollapsibleSections();
+
+  const groupProjects = useMemo(() => {
+    if (!projects) return [];
+    return projects.filter((p) => p.group === groupName);
+  }, [projects, groupName]);
+
+  const rootProject = groupProjects.find((p) => p.is_monorepo_root);
+  const subProjects = groupProjects.filter((p) => !p.is_monorepo_root);
+  const groupType = groupProjects[0]?.group_type || "folder";
+  const displayProjects = groupType === "worktree" ? groupProjects : subProjects;
+
+  const subfolderCategories = useMemo(() => {
+    if (groupType !== "monorepo" || !rootProject) return null;
+    return groupBySubfolder(subProjects, rootProject.path);
+  }, [groupType, rootProject, subProjects]);
+
+  // Auto-navigate back if group becomes empty
+  if (projects && groupProjects.length === 0) {
+    setDetailContext(null);
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setDetailContext(null)}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title="Back to projects"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <SectionHeader
+          title={groupName}
+          description={`${groupProjects.length} project${groupProjects.length !== 1 ? "s" : ""}`}
+        />
+      </div>
+
+      {groupType === "monorepo" && subfolderCategories ? (
+        <>
+          {/* Root project */}
+          {rootProject && (
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Root
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <ProjectCard project={rootProject} />
+              </div>
+            </div>
+          )}
+
+          {/* Subfolder accordion sections */}
+          <SubfolderAccordion
+            categories={subfolderCategories}
+            toggle={toggle}
+            isExpanded={isExpanded}
+          />
+        </>
+      ) : (
+        <>
+          {/* Worktree / folder detail: flat grid */}
+          {displayProjects.length > 0 && (
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {groupType === "worktree" ? "Worktrees" : "Projects"}
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                {displayProjects.map((project) => (
+                  <div key={project.path} className="space-y-1">
+                    <ProjectCard project={project} />
+                    {project.is_monorepo_root && groupType === "worktree" && (
+                      <button
+                        onClick={() =>
+                          setDetailContext({
+                            type: "monorepo-detail",
+                            rootPath: project.path,
+                            label: project.name,
+                            parentGroupName: groupName,
+                          })
+                        }
+                        className="flex w-full items-center gap-1.5 rounded-md px-3 py-1 text-xs text-primary transition-colors hover:bg-accent/30"
+                      >
+                        <Package className="h-3 w-3" />
+                        <span>View packages</span>
+                        <ChevronRight className="ml-auto h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MonorepoWorktreeDetail({
+  rootPath,
+  label,
+  parentGroupName,
+}: {
+  rootPath: string;
+  label: string;
+  parentGroupName: string;
+}) {
+  const setDetailContext = useNavigationStore((s) => s.setDetailContext);
+  const { toggle, isExpanded } = useCollapsibleSections();
+
+  const { data: packages, isLoading } = useQuery({
+    queryKey: ["monorepo-packages", rootPath],
+    queryFn: () => commands.getMonorepoPackages(rootPath),
+  });
+
+  const subfolderCategories = useMemo(
+    () => (packages ? groupBySubfolder(packages, rootPath) : []),
+    [packages, rootPath],
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() =>
+            setDetailContext({
+              type: "project-group",
+              groupName: parentGroupName,
+              label: parentGroupName,
+            })
+          }
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title={`Back to ${parentGroupName}`}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <SectionHeader
+          title={label}
+          description={
+            packages
+              ? `${packages.length} package${packages.length !== 1 ? "s" : ""}`
+              : "Loading..."
+          }
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      ) : subfolderCategories.length > 0 ? (
+        <SubfolderAccordion
+          categories={subfolderCategories}
+          toggle={toggle}
+          isExpanded={isExpanded}
+        />
+      ) : (
+        <EmptyState
+          icon={Package}
+          title="No packages found"
+          description="This monorepo has no detected workspace packages"
+        />
+      )}
+    </div>
+  );
+}
+
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 0] as const;
+const PAGE_SIZE_LABELS: Record<number, string> = { 5: "5", 10: "10", 20: "20", 0: "All" };
 
 export function WorkspacesSection() {
   const { data: workspacePaths } = useWorkspacePaths();
@@ -180,6 +508,79 @@ export function WorkspacesSection() {
   const removeWorkspace = useRemoveWorkspace();
   const queryClient = useQueryClient();
   const groups = useGroupedProjects(projects);
+  const detailContext = useNavigationStore((s) => s.detailContext);
+
+  // Pagination & filter state
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [searchFilter, setSearchFilter] = useState("");
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchFilter(value);
+    setCurrentPage(0);
+  }, []);
+
+  const handlePageSizeChange = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(0);
+  }, []);
+
+  // Filtering
+  const filteredGroups = useMemo(() => {
+    if (!searchFilter) return groups;
+    const query = searchFilter.toLowerCase();
+    return groups
+      .map((group) => {
+        if (group.name) {
+          const nameMatch = group.name.toLowerCase().includes(query);
+          const hasProjectMatch = group.projects.some((p) =>
+            p.name.toLowerCase().includes(query),
+          );
+          if (nameMatch || hasProjectMatch) return group;
+          return null;
+        } else {
+          const filtered = group.projects.filter((p) =>
+            p.name.toLowerCase().includes(query),
+          );
+          if (filtered.length === 0) return null;
+          return { ...group, projects: filtered };
+        }
+      })
+      .filter(Boolean) as ProjectGroup[];
+  }, [groups, searchFilter]);
+
+  // Pagination
+  const pageItems = useMemo(() => {
+    const items: PageItem[] = [];
+    for (const group of filteredGroups) {
+      if (group.name) {
+        items.push({ kind: "group", group });
+      } else {
+        for (const project of group.projects) {
+          items.push({ kind: "project", project });
+        }
+      }
+    }
+    return items;
+  }, [filteredGroups]);
+
+  const totalPages = pageSize === 0 ? 1 : Math.ceil(pageItems.length / pageSize);
+
+  const paginatedItems = useMemo(() => {
+    if (pageSize === 0) return pageItems;
+    return pageItems.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  }, [pageItems, currentPage, pageSize]);
+
+  // Description
+  const totalProjectCount = projects?.length ?? 0;
+  const filteredProjectCount = filteredGroups.reduce(
+    (acc, g) => acc + g.projects.length,
+    0,
+  );
+  const wsCount = workspacePaths?.length ?? 0;
+  const description = searchFilter
+    ? `${filteredProjectCount} of ${totalProjectCount} projects across ${wsCount} workspace${wsCount !== 1 ? "s" : ""}`
+    : `${totalProjectCount} project${totalProjectCount !== 1 ? "s" : ""} across ${wsCount} workspace${wsCount !== 1 ? "s" : ""}`;
 
   const handleAddWorkspace = async () => {
     const selected = await open({
@@ -193,11 +594,27 @@ export function WorkspacesSection() {
     }
   };
 
+  // Detail views
+  if (detailContext?.type === "monorepo-detail") {
+    return (
+      <MonorepoWorktreeDetail
+        rootPath={detailContext.rootPath}
+        label={detailContext.label}
+        parentGroupName={detailContext.parentGroupName}
+      />
+    );
+  }
+
+  if (detailContext?.type === "project-group") {
+    return <ProjectGroupDetail groupName={detailContext.groupName} />;
+  }
+
+  // List view
   return (
     <div className="space-y-4">
       <SectionHeader
         title="Projects"
-        description={`${projects?.length ?? 0} project${(projects?.length ?? 0) !== 1 ? "s" : ""} across ${workspacePaths?.length ?? 0} workspace${(workspacePaths?.length ?? 0) !== 1 ? "s" : ""}`}
+        description={description}
         onRefresh={() => {
           queryClient.invalidateQueries({ queryKey: ["projects"] });
           queryClient.invalidateQueries({ queryKey: ["all-git-statuses"] });
@@ -236,7 +653,36 @@ export function WorkspacesSection() {
         </div>
       )}
 
-      {/* Project groups */}
+      {/* Toolbar: search + page size */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchFilter}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Filter projects..."
+            className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+          {PAGE_SIZE_OPTIONS.map((size) => (
+            <button
+              key={size}
+              onClick={() => handlePageSizeChange(size)}
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                pageSize === size
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {PAGE_SIZE_LABELS[size]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Project grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4">
           <CardSkeleton />
@@ -244,35 +690,17 @@ export function WorkspacesSection() {
           <CardSkeleton />
           <CardSkeleton />
         </div>
-      ) : groups.length > 0 ? (
-        <div className="space-y-6">
-          {groups.map((group) => (
-            <div key={group.name || "__root__"}>
-              {group.name ? (
-                <div className="mb-3 flex items-center gap-2">
-                  <Folder className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-sm font-semibold">{group.name}</h3>
-                  <span className="text-xs text-muted-foreground">
-                    {group.projects.length} project
-                    {group.projects.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              ) : groups.length > 1 ? (
-                <div className="mb-3">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Projects
-                  </h3>
-                </div>
-              ) : null}
-              <div className="grid grid-cols-2 gap-4">
-                {group.projects.map((project) => (
-                  <ProjectCard key={project.path} project={project} />
-                ))}
-              </div>
-            </div>
-          ))}
+      ) : paginatedItems.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4">
+          {paginatedItems.map((item) =>
+            item.kind === "group" ? (
+              <GroupSummaryCard key={item.group.name} group={item.group} />
+            ) : (
+              <ProjectCard key={item.project.path} project={item.project} />
+            ),
+          )}
         </div>
-      ) : (
+      ) : groups.length === 0 ? (
         <EmptyState
           icon={FolderPlus}
           title="No workspaces added"
@@ -287,6 +715,39 @@ export function WorkspacesSection() {
             </button>
           }
         />
+      ) : (
+        <EmptyState
+          icon={Search}
+          title="No matching projects"
+          description="Try a different search term"
+        />
+      )}
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-border pt-3">
+          <span className="text-xs text-muted-foreground">
+            Page {currentPage + 1} of {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+              className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() =>
+                setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+              }
+              disabled={currentPage >= totalPages - 1}
+              className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
