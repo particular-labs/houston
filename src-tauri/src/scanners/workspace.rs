@@ -237,17 +237,32 @@ fn get_description(path: &Path) -> String {
     String::new()
 }
 
-pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
-    let mut projects = Vec::new();
-    let workspace = Path::new(workspace_path);
+/// Maximum depth to recurse when scanning for projects.
+const MAX_SCAN_DEPTH: usize = 3;
 
-    if !workspace.exists() || !workspace.is_dir() {
-        return projects;
+/// Directories that should never be descended into.
+const SKIP_DIRS: &[&str] = &[
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    ".git",
+    "__pycache__",
+    "vendor",
+    ".next",
+    ".nuxt",
+    "venv",
+    ".venv",
+];
+
+fn scan_recursive(dir: &Path, depth: usize, projects: &mut Vec<ProjectInfo>) {
+    if depth > MAX_SCAN_DEPTH {
+        return;
     }
 
-    let entries = match fs::read_dir(workspace) {
+    let entries = match fs::read_dir(dir) {
         Ok(e) => e,
-        Err(_) => return projects,
+        Err(_) => return,
     };
 
     for entry in entries.flatten() {
@@ -256,19 +271,18 @@ pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
             continue;
         }
 
-        // Skip hidden directories
-        if entry.file_name().to_string_lossy().starts_with('.') {
+        let dir_name = entry.file_name().to_string_lossy().to_string();
+
+        // Skip hidden directories and known non-project dirs
+        if dir_name.starts_with('.') || SKIP_DIRS.contains(&dir_name.as_str()) {
             continue;
         }
 
         // Check for project markers
+        let mut is_project = false;
         for marker in MARKERS {
             if path.join(marker.file).exists() {
-                let name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
-
+                let name = dir_name.clone();
                 let framework = (marker.framework_detector)(&path);
                 let package_manager = detect_package_manager(&path);
                 let description = get_description(&path);
@@ -283,10 +297,27 @@ pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
                     description,
                     has_git,
                 });
+                is_project = true;
                 break; // Only match first marker
             }
         }
+
+        // If this directory isn't itself a project, recurse into it
+        if !is_project {
+            scan_recursive(&path, depth + 1, projects);
+        }
     }
+}
+
+pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
+    let mut projects = Vec::new();
+    let workspace = Path::new(workspace_path);
+
+    if !workspace.exists() || !workspace.is_dir() {
+        return projects;
+    }
+
+    scan_recursive(workspace, 0, &mut projects);
 
     projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     projects
