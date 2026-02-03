@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { useEffect } from "react";
 import { useNavigationStore, type Section } from "@/stores/navigation";
+import { useHydrateWorkspaces } from "@/hooks/use-workspaces";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,9 +51,15 @@ function KeyboardShortcuts() {
   return null;
 }
 
+function HydrateWorkspaces() {
+  useHydrateWorkspaces();
+  return null;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <HydrateWorkspaces />
       <KeyboardShortcuts />
       <AppShell />
       <Toaster
