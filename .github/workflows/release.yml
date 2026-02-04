@@ -19,6 +19,7 @@ jobs:
 
     name: macOS (${{ matrix.name }})
     runs-on: macos-latest
+    timeout-minutes: 45
     environment: prod
 
     steps:
@@ -74,4 +75,4 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --no-notarization-wait
