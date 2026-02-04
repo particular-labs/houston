@@ -25,3 +25,7 @@ dist-ssr
 
 
 SETUP.md
+
+# Generated mobile icons (recreate with: pnpm tauri icon)
+src-tauri/icons/android/
+src-tauri/icons/ios/
