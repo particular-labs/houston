@@ -60,6 +60,7 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
 
       - name: Build Tauri app
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,3 +77,37 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           args: --target ${{ matrix.target }} --no-notarization-wait
+
+      - name: Notarize and staple
+        timeout-minutes: 30
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Store notarytool credentials
+          xcrun notarytool store-credentials "notary-profile" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+          # Find the DMG built by Tauri
+          DMG=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
+          echo "Notarizing: $DMG"
+
+          # Submit and wait with a 25-minute timeout.
+          # Tauri already submitted via --no-notarization-wait, but Apple
+          # deduplicates by hash so this just picks up the existing submission.
+          xcrun notarytool submit "$DMG" \
+            --keychain-profile "notary-profile" \
+            --wait \
+            --timeout 25m
+
+          # Staple the notarization ticket to the DMG
+          xcrun stapler staple "$DMG"
+
+          # Re-upload the stapled DMG to the draft release, replacing the
+          # un-stapled version that tauri-action uploaded.
+          VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          gh release upload "v${VERSION}" "$DMG" --clobber
