@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Houston — Dev Mission Control</title>
+  <meta name="description" content="A lightweight desktop app for inspecting your local development environment. Built with Tauri, React, and Rust.">
+  <meta name="theme-color" content="#1a1a27">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Houston — Dev Mission Control">
+  <meta property="og:description" content="A lightweight desktop app for inspecting your local development environment.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://particular-labs.github.io/houston/">
+  <meta property="og:image" content="https://particular-labs.github.io/houston/screenshots/dashboard.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/particular-labs/houston/main/src-tauri/icons/32x32.png">
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #1a1a27;
+      --bg-card: #1e1e2b;
+      --bg-secondary: #242432;
+      --bg-accent: #2a2a37;
+      --fg: #f2f2f5;
+      --fg-muted: #9999a8;
+      --primary: #5b7cff;
+      --primary-hover: #7b96ff;
+      --border: #2a2a37;
+      --success: #4cc96f;
+      --warning: #dcb855;
+      --radius: 10px;
+      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    a:hover {
+      color: var(--primary-hover);
+    }
+
+    /* ---------- Layout ---------- */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 80px 0;
+    }
+
+    /* ---------- Nav ---------- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(26, 26, 39, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+
+    .nav-brand {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.06em;
+      color: var(--fg);
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      color: var(--fg-muted);
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--fg);
+    }
+
+    .nav-github {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-github svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      padding: 160px 0 80px;
+      text-align: center;
+    }
+
+    .hero-wordmark {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .hero-tagline {
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--primary);
+      margin-bottom: 24px;
+    }
+
+    .hero-description {
+      font-size: 18px;
+      color: var(--fg-muted);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-accent);
+      color: var(--fg);
+      border-color: #3a3a4a;
+    }
+
+    /* ---------- Screenshot ---------- */
+    .screenshot {
+      padding: 0 0 80px;
+    }
+
+    .screenshot-wrapper {
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(91, 124, 255, 0.05),
+        0 24px 80px rgba(0, 0, 0, 0.5),
+        0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .screenshot-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .screenshot-glow {
+      position: absolute;
+      top: -50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(91, 124, 255, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ---------- Features ---------- */
+    .features {
+      border-top: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .section-subtitle {
+      font-size: 16px;
+      color: var(--fg-muted);
+      max-width: 480px;
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: #3a3a4a;
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+
+    .feature-icon--blue   { background: rgba(91, 124, 255, 0.12); color: #5b7cff; }
+    .feature-icon--green  { background: rgba(76, 201, 111, 0.12); color: #4cc96f; }
+    .feature-icon--amber  { background: rgba(220, 184, 85, 0.12); color: #dcb855; }
+    .feature-icon--purple { background: rgba(155, 100, 255, 0.12); color: #9b64ff; }
+    .feature-icon--cyan   { background: rgba(80, 200, 220, 0.12); color: #50c8dc; }
+    .feature-icon--pink   { background: rgba(255, 100, 150, 0.12); color: #ff6496; }
+
+    .feature-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .feature-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--fg-muted);
+      line-height: 1.65;
+    }
+
+    /* ---------- Tech Stack ---------- */
+    .stack {
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .stack-badges {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg);
+      transition: border-color 0.2s;
+    }
+
+    .badge:hover {
+      border-color: #3a3a4a;
+    }
+
+    .badge svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .stack-details {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .stack-item {
+      text-align: center;
+    }
+
+    .stack-item-label {
+      font-size: 12px;
+      color: var(--fg-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .stack-item-value {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--fg);
+    }
+
+    /* ---------- CTA ---------- */
+    .cta {
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .cta .section-title {
+      margin-bottom: 8px;
+    }
+
+    .cta-subtitle {
+      font-size: 16px;
+      color: var(--fg-muted);
+      margin-bottom: 32px;
+    }
+
+    .cta-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .cta-note {
+      font-size: 13px;
+      color: var(--fg-muted);
+      margin-top: 20px;
+    }
+
+    /* ---------- Footer ---------- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: var(--fg-muted);
+    }
+
+    .footer-left a {
+      color: var(--fg-muted);
+    }
+
+    .footer-left a:hover {
+      color: var(--fg);
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .footer-right a {
+      font-size: 13px;
+      color: var(--fg-muted);
+    }
+
+    .footer-right a:hover {
+      color: var(--fg);
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 120px 0 60px;
+      }
+
+      .hero-wordmark {
+        font-size: 40px;
+      }
+
+      .hero-description {
+        font-size: 16px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .section-title {
+        font-size: 26px;
+      }
+
+      section {
+        padding: 60px 0;
+      }
+
+      .stack-details {
+        gap: 32px;
+      }
+
+      footer .container {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-wordmark {
+        font-size: 32px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .nav-links .nav-link-text {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-brand">Houston</a>
+      <ul class="nav-links">
+        <li><a href="#features" class="nav-link-text">Features</a></li>
+        <li><a href="#stack" class="nav-link-text">Stack</a></li>
+        <li>
+          <a href="https://github.com/particular-labs/houston" class="nav-github" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            <span class="nav-link-text">GitHub</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero-wordmark">Houston</h1>
+      <p class="hero-tagline">Dev Mission Control</p>
+      <p class="hero-description">
+        A lightweight desktop app for inspecting your local development environment. See everything at a glance &mdash; languages, tools, projects, and configs.
+      </p>
+      <div class="hero-actions">
+        <a href="https://github.com/particular-labs/houston/releases/latest" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for macOS
+        </a>
+        <a href="https://github.com/particular-labs/houston" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshot -->
+  <section class="screenshot">
+    <div class="container">
+      <div class="screenshot-wrapper">
+        <div class="screenshot-glow"></div>
+        <img src="screenshots/dashboard.png" alt="Houston dashboard showing system overview, detected languages, and workspace projects" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <p class="section-label">Features</p>
+      <h2 class="section-title">Everything you need, one dashboard</h2>
+      <p class="section-subtitle">Houston scans your machine and shows what matters. No config files, no setup &mdash; just open it.</p>
+
+      <div class="features-grid">
+        <!-- System Overview -->
+        <div class="feature-card">
+          <div class="feature-icon feature-icon--blue">
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3 class="feature-name">System Overview</h3>
+          <p class="feature-desc">OS, kernel, architecture, shell, CPU, and memory at a glance. Know exactly what you're running on.</p>
+        </div>
+
+        <!-- PATH Inspector -->
+        <div class="feature-card">
+          <div class="feature-icon feature-icon--green">
+            <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+          </div>
+          <h3 class="feature-name">PATH Inspector</h3>
+          <p class="feature-desc">Every PATH entry validated for existence and duplicates, categorized by source &mdash; Homebrew, Rust, Node.js, Python, and more.</p>
+        </div>
+
+        <!-- Language Detection -->
+        <div class="feature-card">
+          <div class="feature-icon feature-icon--amber">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <h3 class="feature-name">Language Detection</h3>
+          <p class="feature-desc">Detects Node.js, Python, Ruby, Go, Rust, Java, and more with versions, binary paths, and version manager identification.</p>
+        </div>
+
+        <!-- Workspace Manager -->
+        <div class="feature-card">
+          <div class="feature-icon feature-icon--purple">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3 class="feature-name">Workspace Manager</h3>
+          <p class="feature-desc">Scans your project directories, detects frameworks, shows package manager info, and lets you open projects in one click.</p>
+        </div>
+
+        <!-- Git Awareness -->
+        <div class="feature-card">
+          <div class="feature-icon feature-icon--cyan">
+            <svg viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/></svg>
+          </div>
+          <h3 class="feature-name">Git Awareness</h3>
+          <p class="feature-desc">Per-project branch, dirty state, modified/untracked/staged counts, ahead/behind remote, and last commit info.</p>
+        </div>
+
+        <!-- AI Tools & MCP -->
+        <div class="feature-card">
+          <div class="feature-icon feature-icon--pink">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3 class="feature-name">AI Tools &amp; MCP</h3>
+          <p class="feature-desc">Reads your Claude Code config to show MCP servers, settings, and project count. See your AI setup at a glance.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="stack" id="stack">
+    <div class="container">
+      <p class="section-label">Built with</p>
+      <h2 class="section-title">Modern, native, fast</h2>
+
+      <div class="stack-badges">
+        <!-- Tauri -->
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="15" cy="7" r="3.5" stroke="#5b7cff" stroke-width="1.5"/><circle cx="9" cy="17" r="3.5" stroke="#5b7cff" stroke-width="1.5"/><path d="M13.5 9.5C11 13 7.5 12.5 6.5 14" stroke="#5b7cff" stroke-width="1.5" stroke-linecap="round"/><path d="M10.5 14.5C13 11 16.5 11.5 17.5 10" stroke="#5b7cff" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Tauri 2.0
+        </span>
+        <!-- React -->
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2" fill="#5b7cff"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke="#5b7cff" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke="#5b7cff" stroke-width="1.2" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke="#5b7cff" stroke-width="1.2" transform="rotate(120 12 12)"/></svg>
+          React 19
+        </span>
+        <!-- Rust -->
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#5b7cff" stroke-width="1.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="#5b7cff" stroke-width="1.5" stroke-linecap="round"/><path d="M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" stroke="#5b7cff" stroke-width="1.5" stroke-linecap="round"/><path d="M9 15h4l-1-3h-2l-1 3zM10.5 12l.5-2h2l.5 2" stroke="#5b7cff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Rust
+        </span>
+        <!-- TypeScript -->
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#5b7cff" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-family="Inter, sans-serif" font-weight="700" font-size="10" fill="#5b7cff">TS</text></svg>
+          TypeScript
+        </span>
+      </div>
+
+      <div class="stack-details">
+        <div class="stack-item">
+          <div class="stack-item-label">Styling</div>
+          <div class="stack-item-value">Tailwind CSS 4</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-item-label">State</div>
+          <div class="stack-item-value">TanStack Query + Zustand</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-item-label">Build</div>
+          <div class="stack-item-value">Vite 7</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-item-label">Backend</div>
+          <div class="stack-item-value">Rust std::process</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta" id="download">
+    <div class="container">
+      <p class="section-label">Get started</p>
+      <h2 class="section-title">Try Houston</h2>
+      <p class="cta-subtitle">Free and open source. Download the latest release or build from source.</p>
+
+      <div class="cta-actions">
+        <a href="https://github.com/particular-labs/houston/releases/latest" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 0-7.07 17.07A10 10 0 0 0 12 22a10 10 0 0 0 7.07-2.93A10 10 0 0 0 12 2z"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Download for macOS
+        </a>
+        <a href="https://github.com/particular-labs/houston" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View Source
+        </a>
+      </div>
+
+      <p class="cta-note">macOS (Apple Silicon &amp; Intel) &middot; MIT License</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-left">
+        <a href="https://github.com/particular-labs" target="_blank" rel="noopener">Particular Labs</a> &middot; MIT License
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/particular-labs/houston" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/particular-labs/houston/releases" target="_blank" rel="noopener">Releases</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
