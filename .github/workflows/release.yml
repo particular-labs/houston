@@ -59,15 +59,12 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
-      - name: Build Tauri app
+      - name: Build Tauri app (sign only, no notarization)
         id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: v__VERSION__
@@ -76,7 +73,7 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
-          args: --target ${{ matrix.target }} --no-notarization-wait
+          args: --target ${{ matrix.target }}
 
       - name: Notarize and staple
         timeout-minutes: 30
@@ -96,9 +93,7 @@ jobs:
           DMG=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
           echo "Notarizing: $DMG"
 
-          # Submit and wait with a 25-minute timeout.
-          # Tauri already submitted via --no-notarization-wait, but Apple
-          # deduplicates by hash so this just picks up the existing submission.
+          # Submit and wait with a 25-minute timeout
           xcrun notarytool submit "$DMG" \
             --keychain-profile "notary-profile" \
             --wait \
