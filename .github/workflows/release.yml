@@ -19,6 +19,7 @@ jobs:
 
     name: macOS (${{ matrix.name }})
     runs-on: macos-latest
+    environment: prod
 
     steps:
       - uses: actions/checkout@v4
