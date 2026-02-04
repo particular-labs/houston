@@ -19,7 +19,7 @@ jobs:
 
     name: macOS (${{ matrix.name }})
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     environment: prod
 
     steps:
@@ -77,7 +77,7 @@ jobs:
           args: --target ${{ matrix.target }}
 
       - name: Notarize and staple
-        timeout-minutes: 30
+        timeout-minutes: 50
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -98,7 +98,7 @@ jobs:
           xcrun notarytool submit "$DMG" \
             --keychain-profile "notary-profile" \
             --wait \
-            --timeout 25m
+            --timeout 45m
 
           # Staple the notarization ticket to the DMG
           xcrun stapler staple "$DMG"
