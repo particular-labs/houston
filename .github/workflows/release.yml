@@ -94,11 +94,31 @@ jobs:
           DMG=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
           echo "Notarizing: $DMG"
 
-          # Submit and wait with a 25-minute timeout
-          xcrun notarytool submit "$DMG" \
-            --keychain-profile "notary-profile" \
-            --wait \
-            --timeout 45m
+          # Retry loop — Apple's notarization service is unreliable (Jan-Feb 2026).
+          # Try 3 times with 10-minute waits between attempts.
+          MAX_ATTEMPTS=3
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+            echo "--- Attempt $ATTEMPT of $MAX_ATTEMPTS ---"
+            if xcrun notarytool submit "$DMG" \
+              --keychain-profile "notary-profile" \
+              --wait \
+              --timeout 10m; then
+              echo "Notarization succeeded on attempt $ATTEMPT"
+              NOTARIZED=true
+              break
+            else
+              echo "Attempt $ATTEMPT failed (exit code $?)"
+              if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+                echo "Waiting 10 minutes before retry..."
+                sleep 600
+              fi
+            fi
+          done
+
+          if [ "${NOTARIZED:-}" != "true" ]; then
+            echo "::error::Notarization failed after $MAX_ATTEMPTS attempts"
+            exit 1
+          fi
 
           # Staple the notarization ticket to the DMG
           xcrun stapler staple "$DMG"
