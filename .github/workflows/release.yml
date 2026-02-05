@@ -95,34 +95,47 @@ jobs:
           DMG=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
           echo "Notarizing: $DMG"
 
-          # Retry loop — Apple's notarization service is unreliable (Jan-Feb 2026).
-          # Try 3 times with 10-minute waits between attempts.
-          # Uses App Store Connect API key auth (more reliable than Apple ID).
-          MAX_ATTEMPTS=3
-          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
-            echo "--- Attempt $ATTEMPT of $MAX_ATTEMPTS ---"
-            if xcrun notarytool submit "$DMG" \
-              --key "$APPLE_API_KEY_PATH" \
-              --key-id "$APPLE_API_KEY_ID" \
-              --issuer "$APPLE_API_ISSUER" \
-              --wait \
-              --timeout 10m; then
-              echo "Notarization succeeded on attempt $ATTEMPT"
-              NOTARIZED=true
-              break
-            else
-              echo "Attempt $ATTEMPT failed (exit code $?)"
-              if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
-                echo "Waiting 10 minutes before retry..."
-                sleep 600
-              fi
-            fi
-          done
+          # Submit without --wait, then poll. Apple's service is slow (Jan-Feb 2026)
+          # but does eventually accept. Polling avoids notarytool's built-in timeout.
+          SUBMIT_OUT=$(xcrun notarytool submit "$DMG" \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" 2>&1)
+          echo "$SUBMIT_OUT"
 
-          if [ "${NOTARIZED:-}" != "true" ]; then
-            echo "::error::Notarization failed after $MAX_ATTEMPTS attempts"
+          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | grep 'id:' | head -1 | awk '{print $2}')
+          echo "Submission ID: $SUBMISSION_ID"
+
+          if [ -z "$SUBMISSION_ID" ]; then
+            echo "::error::Failed to submit for notarization"
             exit 1
           fi
+
+          # Poll every 30s until Apple finishes processing
+          echo "Polling for notarization result..."
+          while true; do
+            INFO=$(xcrun notarytool info "$SUBMISSION_ID" \
+              --key "$APPLE_API_KEY_PATH" \
+              --key-id "$APPLE_API_KEY_ID" \
+              --issuer "$APPLE_API_ISSUER" 2>&1)
+            STATUS=$(echo "$INFO" | grep 'status:' | awk '{print $2}')
+            echo "$(date -u +%H:%M:%S) Status: $STATUS"
+
+            if [ "$STATUS" = "Accepted" ]; then
+              echo "Notarization accepted!"
+              break
+            elif [ "$STATUS" = "Invalid" ] || [ "$STATUS" = "Rejected" ]; then
+              echo "$INFO"
+              echo "::error::Notarization was rejected by Apple"
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --key "$APPLE_API_KEY_PATH" \
+                --key-id "$APPLE_API_KEY_ID" \
+                --issuer "$APPLE_API_ISSUER" 2>&1 || true
+              exit 1
+            fi
+
+            sleep 30
+          done
 
           # Staple the notarization ticket to the DMG
           xcrun stapler staple "$DMG"
