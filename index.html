@@ -5,12 +5,31 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Houston</title>
+    <script>
+      // Apply theme immediately to prevent flash
+      (function() {
+        try {
+          var stored = localStorage.getItem('houston-theme');
+          if (stored) {
+            var theme = JSON.parse(stored);
+            if (theme === 'light') {
+              document.documentElement.setAttribute('data-theme', 'light');
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
     <style>
       /* Prevent white flash on load - uses CSS var with dark fallback */
       html, body {
         background: var(--color-background, oklch(0.145 0.015 260));
         margin: 0;
         padding: 0;
+      }
+
+      /* Light theme background for splash */
+      html[data-theme="light"], html[data-theme="light"] body {
+        background: oklch(0.98 0.005 260);
       }
 
       #splash {
@@ -25,6 +44,10 @@
         animation: splashOut 0.4s ease-in 2.4s forwards;
       }
 
+      html[data-theme="light"] #splash {
+        background: oklch(0.98 0.005 260);
+      }
+
       .splash-wordmark {
         font-family: Inter, system-ui, sans-serif;
         font-size: 18px;
@@ -33,6 +56,10 @@
         letter-spacing: 0.04em;
         opacity: 0;
         animation: fadeSlideUp 0.5s ease-out forwards;
+      }
+
+      html[data-theme="light"] .splash-wordmark {
+        color: oklch(0.15 0.02 260);
       }
 
       .splash-tagline {
@@ -47,6 +74,10 @@
         animation: fadeIn 0.4s ease-out 0.3s forwards;
       }
 
+      html[data-theme="light"] .splash-tagline {
+        color: oklch(0.45 0.02 260);
+      }
+
       .splash-checks {
         margin-top: 24px;
         display: flex;
@@ -55,6 +86,10 @@
         font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
         font-size: 12px;
         color: oklch(0.65 0.01 260);
+      }
+
+      html[data-theme="light"] .splash-checks {
+        color: oklch(0.4 0.02 260);
       }
 
       .splash-check {
@@ -66,9 +101,17 @@
         color: oklch(0.35 0.01 260);
       }
 
+      html[data-theme="light"] .splash-check .dots {
+        color: oklch(0.7 0.01 260);
+      }
+
       .splash-check .ok {
         color: oklch(0.65 0.15 250);
         font-weight: 600;
+      }
+
+      html[data-theme="light"] .splash-check .ok {
+        color: oklch(0.5 0.18 250);
       }
 
       .splash-check.c1 { animation: fadeInLeft 0.3s ease-out 0.8s forwards; }
@@ -77,6 +120,10 @@
       .splash-check.c4 {
         animation: fadeIn 0.3s ease-out 2.0s forwards;
         color: oklch(0.75 0.01 260);
+      }
+
+      html[data-theme="light"] .splash-check.c4 {
+        color: oklch(0.35 0.02 260);
       }
 
       @keyframes fadeSlideUp {

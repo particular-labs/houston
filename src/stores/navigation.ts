@@ -14,7 +14,8 @@ export type Section =
 export type DetailContext =
   | { type: "project-group"; groupName: string; label: string }
   | { type: "monorepo-detail"; rootPath: string; label: string; parentGroupName: string }
-  | { type: "tool-detail"; toolName: string; label: string };
+  | { type: "tool-detail"; toolName: string; label: string }
+  | { type: "project-detail"; projectPath: string; projectName: string };
 
 interface NavigationState {
   activeSection: Section;

@@ -1656,6 +1656,7 @@ dependencies = [
  "dirs",
  "fix-path-env",
  "log",
+ "rayon",
  "rusqlite",
  "rusqlite_migration",
  "serde",
@@ -1670,6 +1671,7 @@ dependencies = [
  "tauri-plugin-updater",
  "thiserror 2.0.18",
  "tokio",
+ "walkdir",
  "window-vibrancy 0.5.3",
 ]
 

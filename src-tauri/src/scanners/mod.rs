@@ -6,5 +6,6 @@ pub mod git;
 pub mod languages;
 pub mod packages;
 pub mod path;
+pub mod project_analysis;
 pub mod system;
 pub mod workspace;

@@ -71,6 +71,13 @@ export function AppHeader() {
                   {detailContext.label}
                 </span>
               </>
+            ) : detailContext.type === "project-detail" ? (
+              <>
+                <span className="text-xs text-muted-foreground">/</span>
+                <span className="text-sm font-medium">
+                  {detailContext.projectName}
+                </span>
+              </>
             ) : (
               <>
                 <span className="text-xs text-muted-foreground">/</span>

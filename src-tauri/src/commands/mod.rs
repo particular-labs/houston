@@ -7,6 +7,7 @@ pub mod history_cmds;
 pub mod issue_cmds;
 pub mod language_cmds;
 pub mod package_cmds;
+pub mod project_cmds;
 pub mod settings_cmds;
 pub mod stats_cmds;
 pub mod system_cmds;

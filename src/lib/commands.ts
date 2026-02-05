@@ -186,6 +186,74 @@ export interface IssueRow {
   last_seen: string;
 }
 
+// Project Analysis types
+export interface SizeInfo {
+  bytes: number;
+  display: string;
+}
+
+export interface DirectorySize {
+  name: string;
+  size: SizeInfo;
+  category: string;
+}
+
+export interface JsDetails {
+  node_modules_size: SizeInfo | null;
+  dependency_count: number;
+  dev_dependency_count: number;
+  scripts: string[];
+  engines: string | null;
+  license: string | null;
+}
+
+export interface RustDetails {
+  target_size: SizeInfo | null;
+  dependency_count: number;
+  edition: string | null;
+  features: string[];
+}
+
+export interface PythonDetails {
+  venv_size: SizeInfo | null;
+  dependency_count: number;
+  python_version: string | null;
+}
+
+export interface GoDetails {
+  vendor_size: SizeInfo | null;
+  module_count: number;
+  go_version: string | null;
+}
+
+export type LanguageDetails =
+  | { type: "JavaScript" } & JsDetails
+  | { type: "Rust" } & RustDetails
+  | { type: "Python" } & PythonDetails
+  | { type: "Go" } & GoDetails
+  | { type: "Other" };
+
+export interface ExtendedGitInfo {
+  total_commits: number;
+  contributors: string[];
+  first_commit_date: string | null;
+  tags: string[];
+  stash_count: number;
+}
+
+export interface ProjectAnalysis {
+  path: string;
+  name: string;
+  project_type: string;
+  framework: string;
+  total_size: SizeInfo;
+  code_size: SizeInfo;
+  language_details: LanguageDetails;
+  storage_breakdown: DirectorySize[];
+  git_info: ExtendedGitInfo | null;
+  analyzed_at: string;
+}
+
 // Stats types
 export interface ScannerStatsSnapshot {
   name: string;
@@ -284,4 +352,8 @@ export const commands = {
     invoke<void>("dismiss_issue", { diagnosticId }),
   updateIssueStatus: (diagnosticId: string, status: string) =>
     invoke<void>("update_issue_status", { diagnosticId, status }),
+
+  // Project Analysis
+  analyzeProject: (projectPath: string) =>
+    invoke<ProjectAnalysis>("analyze_project", { projectPath }),
 };
