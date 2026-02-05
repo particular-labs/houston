@@ -36,12 +36,31 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCollapsibleSections } from "@/hooks/use-collapsible-sections";
 import { groupBySubfolder } from "@/lib/group-by-subfolder";
+import { ProjectDetail } from "./project-detail";
 
 function ProjectCard({ project }: { project: ProjectInfo }) {
   const { data: git } = useGitStatus(project.has_git ? project.path : "");
+  const setDetailContext = useNavigationStore((s) => s.setDetailContext);
+
+  const handleCardClick = () => {
+    setDetailContext({
+      type: "project-detail",
+      projectPath: project.path,
+      projectName: project.name,
+    });
+  };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          handleCardClick();
+        }
+      }}
+      className="cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/30">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-medium">{project.name}</h3>
@@ -118,21 +137,30 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => commands.openInTerminal(project.path)}
+            onClick={(e) => {
+              e.stopPropagation();
+              commands.openInTerminal(project.path);
+            }}
             className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
             title="Open in Terminal"
           >
             <Terminal className="h-3 w-3" />
           </button>
           <button
-            onClick={() => commands.openInEditor(project.path)}
+            onClick={(e) => {
+              e.stopPropagation();
+              commands.openInEditor(project.path);
+            }}
             className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
             title="Open in Editor"
           >
             <Code2 className="h-3 w-3" />
           </button>
           <button
-            onClick={() => commands.openClaudeCode(project.path)}
+            onClick={(e) => {
+              e.stopPropagation();
+              commands.openClaudeCode(project.path);
+            }}
             className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
             title="Open Claude Code"
           >
@@ -595,6 +623,15 @@ export function WorkspacesSection() {
   };
 
   // Detail views
+  if (detailContext?.type === "project-detail") {
+    return (
+      <ProjectDetail
+        projectPath={detailContext.projectPath}
+        projectName={detailContext.projectName}
+      />
+    );
+  }
+
   if (detailContext?.type === "monorepo-detail") {
     return (
       <MonorepoWorktreeDetail
@@ -653,7 +690,7 @@ export function WorkspacesSection() {
         </div>
       )}
 
-      {/* Toolbar: search + page size */}
+      {/* Toolbar: search + page size + pagination */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative max-w-xs flex-1">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -665,20 +702,45 @@ export function WorkspacesSection() {
             className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
-          {PAGE_SIZE_OPTIONS.map((size) => (
-            <button
-              key={size}
-              onClick={() => handlePageSizeChange(size)}
-              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                pageSize === size
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {PAGE_SIZE_LABELS[size]}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <button
+                key={size}
+                onClick={() => handlePageSizeChange(size)}
+                className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  pageSize === size
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {PAGE_SIZE_LABELS[size]}
+              </button>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
+                className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+                }
+                disabled={currentPage >= totalPages - 1}
+                className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

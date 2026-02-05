@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+use crate::registry::{detect, is_project_dir, SKIP_DIRS};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectInfo {
     pub name: String,
@@ -15,203 +17,6 @@ pub struct ProjectInfo {
     pub group_type: String,
     pub is_monorepo_root: bool,
     pub worktree_id: String,
-}
-
-struct ProjectMarker {
-    file: &'static str,
-    project_type: &'static str,
-    framework_detector: fn(&Path) -> String,
-    #[allow(dead_code)]
-    package_manager: &'static str,
-}
-
-fn detect_js_framework(path: &Path) -> String {
-    let pkg_json = path.join("package.json");
-    if let Ok(content) = fs::read_to_string(&pkg_json) {
-        if content.contains("\"next\"") {
-            return "Next.js".to_string();
-        }
-        if content.contains("\"react\"") && content.contains("\"vite\"") {
-            return "React + Vite".to_string();
-        }
-        if content.contains("\"react\"") {
-            return "React".to_string();
-        }
-        if content.contains("\"vue\"") {
-            return "Vue".to_string();
-        }
-        if content.contains("\"svelte\"") || content.contains("\"@sveltejs") {
-            return "Svelte".to_string();
-        }
-        if content.contains("\"angular\"") || content.contains("\"@angular") {
-            return "Angular".to_string();
-        }
-        if content.contains("\"astro\"") {
-            return "Astro".to_string();
-        }
-        if content.contains("\"express\"") {
-            return "Express".to_string();
-        }
-        if content.contains("\"hono\"") {
-            return "Hono".to_string();
-        }
-        if content.contains("\"tauri\"") || content.contains("\"@tauri-apps") {
-            return "Tauri".to_string();
-        }
-        if content.contains("\"electron\"") {
-            return "Electron".to_string();
-        }
-    }
-    "Node.js".to_string()
-}
-
-fn detect_python_framework(path: &Path) -> String {
-    if path.join("manage.py").exists() {
-        return "Django".to_string();
-    }
-    if path.join("app.py").exists() || path.join("wsgi.py").exists() {
-        // Check for Flask
-        if let Ok(content) = fs::read_to_string(path.join("app.py")) {
-            if content.contains("Flask") {
-                return "Flask".to_string();
-            }
-            if content.contains("FastAPI") {
-                return "FastAPI".to_string();
-            }
-        }
-    }
-    if path.join("pyproject.toml").exists() {
-        if let Ok(content) = fs::read_to_string(path.join("pyproject.toml")) {
-            if content.contains("fastapi") {
-                return "FastAPI".to_string();
-            }
-            if content.contains("django") {
-                return "Django".to_string();
-            }
-            if content.contains("flask") {
-                return "Flask".to_string();
-            }
-        }
-    }
-    "Python".to_string()
-}
-
-fn detect_rust_framework(path: &Path) -> String {
-    if let Ok(content) = fs::read_to_string(path.join("Cargo.toml")) {
-        if content.contains("tauri") {
-            return "Tauri".to_string();
-        }
-        if content.contains("actix") {
-            return "Actix".to_string();
-        }
-        if content.contains("axum") {
-            return "Axum".to_string();
-        }
-        if content.contains("rocket") {
-            return "Rocket".to_string();
-        }
-    }
-    "Rust".to_string()
-}
-
-fn detect_go_framework(path: &Path) -> String {
-    if let Ok(content) = fs::read_to_string(path.join("go.mod")) {
-        if content.contains("gin-gonic") {
-            return "Gin".to_string();
-        }
-        if content.contains("fiber") {
-            return "Fiber".to_string();
-        }
-        if content.contains("echo") {
-            return "Echo".to_string();
-        }
-    }
-    "Go".to_string()
-}
-
-fn no_framework(_path: &Path) -> String {
-    String::new()
-}
-
-const MARKERS: &[ProjectMarker] = &[
-    ProjectMarker {
-        file: "package.json",
-        project_type: "JavaScript/TypeScript",
-        framework_detector: detect_js_framework,
-        package_manager: "npm/pnpm/yarn",
-    },
-    ProjectMarker {
-        file: "Cargo.toml",
-        project_type: "Rust",
-        framework_detector: detect_rust_framework,
-        package_manager: "cargo",
-    },
-    ProjectMarker {
-        file: "go.mod",
-        project_type: "Go",
-        framework_detector: detect_go_framework,
-        package_manager: "go mod",
-    },
-    ProjectMarker {
-        file: "pyproject.toml",
-        project_type: "Python",
-        framework_detector: detect_python_framework,
-        package_manager: "pip/uv",
-    },
-    ProjectMarker {
-        file: "requirements.txt",
-        project_type: "Python",
-        framework_detector: detect_python_framework,
-        package_manager: "pip",
-    },
-    ProjectMarker {
-        file: "Gemfile",
-        project_type: "Ruby",
-        framework_detector: no_framework,
-        package_manager: "bundler",
-    },
-    ProjectMarker {
-        file: "composer.json",
-        project_type: "PHP",
-        framework_detector: no_framework,
-        package_manager: "composer",
-    },
-    ProjectMarker {
-        file: "pom.xml",
-        project_type: "Java",
-        framework_detector: no_framework,
-        package_manager: "maven",
-    },
-    ProjectMarker {
-        file: "build.gradle",
-        project_type: "Java/Kotlin",
-        framework_detector: no_framework,
-        package_manager: "gradle",
-    },
-];
-
-fn detect_package_manager(path: &Path) -> String {
-    if path.join("pnpm-lock.yaml").exists() {
-        "pnpm".to_string()
-    } else if path.join("yarn.lock").exists() {
-        "yarn".to_string()
-    } else if path.join("bun.lock").exists() || path.join("bun.lockb").exists() {
-        "bun".to_string()
-    } else if path.join("package-lock.json").exists() {
-        "npm".to_string()
-    } else if path.join("Cargo.lock").exists() {
-        "cargo".to_string()
-    } else if path.join("go.sum").exists() {
-        "go mod".to_string()
-    } else if path.join("uv.lock").exists() {
-        "uv".to_string()
-    } else if path.join("Pipfile.lock").exists() {
-        "pipenv".to_string()
-    } else if path.join("poetry.lock").exists() {
-        "poetry".to_string()
-    } else {
-        "unknown".to_string()
-    }
 }
 
 fn get_project_name(path: &Path) -> Option<String> {
@@ -272,54 +77,31 @@ fn get_description(path: &Path) -> String {
     String::new()
 }
 
-/// Directories that should never be descended into.
-const SKIP_DIRS: &[&str] = &[
-    "node_modules",
-    "target",
-    "dist",
-    "build",
-    ".git",
-    "__pycache__",
-    "vendor",
-    ".next",
-    ".nuxt",
-    "venv",
-    ".venv",
-];
-
-fn is_project_dir(path: &Path) -> bool {
-    MARKERS.iter().any(|m| path.join(m.file).exists())
-}
-
 fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInfo> {
-    for marker in MARKERS {
-        if path.join(marker.file).exists() {
-            let folder_name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
-            let name = get_project_name(path).unwrap_or(folder_name);
-            let framework = (marker.framework_detector)(path);
-            let package_manager = detect_package_manager(path);
-            let description = get_description(path);
-            let has_git = path.join(".git").exists();
+    // Use the registry to detect project type
+    let detection = detect(path)?;
 
-            return Some(ProjectInfo {
-                name,
-                path: path.to_string_lossy().to_string(),
-                project_type: marker.project_type.to_string(),
-                framework,
-                package_manager,
-                description,
-                has_git,
-                group: group.to_string(),
-                group_type: group_type.to_string(),
-                is_monorepo_root: false,
-                worktree_id: String::new(),
-            });
-        }
-    }
-    None
+    let folder_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let name = get_project_name(path).unwrap_or(folder_name);
+    let description = get_description(path);
+    let has_git = path.join(".git").exists();
+
+    Some(ProjectInfo {
+        name,
+        path: path.to_string_lossy().to_string(),
+        project_type: detection.category_display,
+        framework: detection.framework,
+        package_manager: detection.package_manager_display,
+        description,
+        has_git,
+        group: group.to_string(),
+        group_type: group_type.to_string(),
+        is_monorepo_root: false,
+        worktree_id: String::new(),
+    })
 }
 
 /// Scan immediate children of a group folder for projects.

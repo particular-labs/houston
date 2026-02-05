@@ -1,11 +1,12 @@
 mod commands;
 mod db;
+mod registry;
 mod scanners;
 mod state;
 
 use commands::{
     action_cmds, ai_tools_cmds, claude_cmds, diagnostics_cmds, env_cmds, history_cmds,
-    issue_cmds, language_cmds, package_cmds, settings_cmds, stats_cmds, system_cmds,
+    issue_cmds, language_cmds, package_cmds, project_cmds, settings_cmds, stats_cmds, system_cmds,
     workspace_cmds,
 };
 use state::AppState;
@@ -70,6 +71,8 @@ pub fn run() {
             issue_cmds::get_issues,
             issue_cmds::dismiss_issue,
             issue_cmds::update_issue_status,
+            // Project Analysis
+            project_cmds::analyze_project,
         ])
         .setup(|app| {
             use tauri::Manager;
