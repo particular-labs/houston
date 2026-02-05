@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+pub mod demo;
 mod registry;
 mod scanners;
 mod state;

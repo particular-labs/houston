@@ -1,9 +1,14 @@
+use crate::demo;
 use crate::scanners::{path, system};
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub fn get_system_info(state: State<'_, AppState>) -> system::SystemInfo {
+    if demo::is_enabled() {
+        return demo::mock_system_info();
+    }
+
     let mut cache = state.system_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.system_stats.record_hit();
@@ -24,6 +29,10 @@ pub fn get_system_info(state: State<'_, AppState>) -> system::SystemInfo {
 
 #[tauri::command]
 pub fn get_path_entries(state: State<'_, AppState>) -> Vec<path::PathEntry> {
+    if demo::is_enabled() {
+        return demo::mock_path_entries();
+    }
+
     let mut cache = state.path_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.path_stats.record_hit();
@@ -44,6 +53,10 @@ pub fn get_path_entries(state: State<'_, AppState>) -> Vec<path::PathEntry> {
 
 #[tauri::command]
 pub fn refresh_system_info(state: State<'_, AppState>) -> system::SystemInfo {
+    if demo::is_enabled() {
+        return demo::mock_system_info();
+    }
+
     let mut cache = state.system_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();
@@ -61,6 +74,10 @@ pub fn refresh_system_info(state: State<'_, AppState>) -> system::SystemInfo {
 
 #[tauri::command]
 pub fn refresh_path_entries(state: State<'_, AppState>) -> Vec<path::PathEntry> {
+    if demo::is_enabled() {
+        return demo::mock_path_entries();
+    }
+
     let mut cache = state.path_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();

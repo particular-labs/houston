@@ -1,14 +1,22 @@
+use crate::demo;
 use crate::scanners::{git, workspace};
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub fn get_workspace_paths(state: State<'_, AppState>) -> Vec<String> {
+    if demo::is_enabled() {
+        return vec!["/Users/developer/Projects".to_string()];
+    }
     state.workspace_paths.lock().unwrap().clone()
 }
 
 #[tauri::command]
 pub fn add_workspace(state: State<'_, AppState>, path: String) -> Vec<String> {
+    if demo::is_enabled() {
+        return vec!["/Users/developer/Projects".to_string()];
+    }
+
     let mut paths = state.workspace_paths.lock().unwrap();
     if !paths.contains(&path) {
         paths.push(path.clone());
@@ -21,6 +29,10 @@ pub fn add_workspace(state: State<'_, AppState>, path: String) -> Vec<String> {
 
 #[tauri::command]
 pub fn remove_workspace(state: State<'_, AppState>, path: String) -> Vec<String> {
+    if demo::is_enabled() {
+        return vec!["/Users/developer/Projects".to_string()];
+    }
+
     let mut paths = state.workspace_paths.lock().unwrap();
     paths.retain(|p| p != &path);
     let result = paths.clone();
@@ -37,6 +49,10 @@ pub fn remove_workspace(state: State<'_, AppState>, path: String) -> Vec<String>
 
 #[tauri::command]
 pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> {
+    if demo::is_enabled() {
+        return demo::mock_projects();
+    }
+
     let start = std::time::Instant::now();
     let workspace_paths = state.workspace_paths.lock().unwrap().clone();
     let mut all_projects = Vec::new();
@@ -161,11 +177,20 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
 
 #[tauri::command]
 pub fn get_git_status(_state: State<'_, AppState>, project_path: String) -> Option<git::GitStatus> {
+    if demo::is_enabled() {
+        return demo::mock_git_statuses()
+            .into_iter()
+            .find(|s| s.project_path == project_path);
+    }
     git::get_status(&project_path)
 }
 
 #[tauri::command]
 pub fn get_all_git_statuses(state: State<'_, AppState>) -> Vec<git::GitStatus> {
+    if demo::is_enabled() {
+        return demo::mock_git_statuses();
+    }
+
     let mut cache = state.git_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.git_stats.record_hit();
@@ -194,5 +219,8 @@ pub fn get_all_git_statuses(state: State<'_, AppState>) -> Vec<git::GitStatus> {
 
 #[tauri::command]
 pub fn get_monorepo_packages(root_path: String) -> Vec<workspace::ProjectInfo> {
+    if demo::is_enabled() {
+        return vec![];
+    }
     workspace::scan_monorepo_packages(&root_path)
 }

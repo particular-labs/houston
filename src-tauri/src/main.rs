@@ -43,5 +43,10 @@ fn main() {
     #[cfg(unix)]
     load_shell_env();
 
+    // Check for --demo flag
+    if std::env::args().any(|arg| arg == "--demo") {
+        houston_lib::demo::enable();
+    }
+
     houston_lib::run()
 }

@@ -1,9 +1,14 @@
+use crate::demo;
 use crate::scanners::languages;
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub fn get_languages(state: State<'_, AppState>) -> Vec<languages::LanguageInfo> {
+    if demo::is_enabled() {
+        return demo::mock_languages();
+    }
+
     let mut cache = state.language_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.language_stats.record_hit();
@@ -24,6 +29,10 @@ pub fn get_languages(state: State<'_, AppState>) -> Vec<languages::LanguageInfo>
 
 #[tauri::command]
 pub fn refresh_languages(state: State<'_, AppState>) -> Vec<languages::LanguageInfo> {
+    if demo::is_enabled() {
+        return demo::mock_languages();
+    }
+
     let mut cache = state.language_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();

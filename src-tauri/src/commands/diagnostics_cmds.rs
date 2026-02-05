@@ -1,3 +1,4 @@
+use crate::demo;
 use crate::scanners::diagnostics;
 use crate::state::AppState;
 use tauri::State;
@@ -24,6 +25,10 @@ fn sync_issues_to_db(state: &State<'_, AppState>, report: &diagnostics::Diagnost
 
 #[tauri::command]
 pub fn get_diagnostics(state: State<'_, AppState>) -> diagnostics::DiagnosticReport {
+    if demo::is_enabled() {
+        return demo::mock_diagnostics();
+    }
+
     let mut cache = state.diagnostics_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.diagnostics_stats.record_hit();
@@ -47,6 +52,10 @@ pub fn get_diagnostics(state: State<'_, AppState>) -> diagnostics::DiagnosticRep
 
 #[tauri::command]
 pub fn refresh_diagnostics(state: State<'_, AppState>) -> diagnostics::DiagnosticReport {
+    if demo::is_enabled() {
+        return demo::mock_diagnostics();
+    }
+
     let mut cache = state.diagnostics_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();
@@ -67,5 +76,12 @@ pub fn refresh_diagnostics(state: State<'_, AppState>) -> diagnostics::Diagnosti
 
 #[tauri::command]
 pub fn run_diagnostic_fix(fix_id: String) -> diagnostics::FixResult {
+    if demo::is_enabled() {
+        return diagnostics::FixResult {
+            success: true,
+            message: "Demo mode: fix simulated".to_string(),
+            output: None,
+        };
+    }
     diagnostics::execute_fix(&fix_id)
 }

@@ -223,6 +223,139 @@
       border-color: #3a3a4a;
     }
 
+    /* ---------- Download Dropdown ---------- */
+    .download-wrapper {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .download-main {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .download-main .btn-primary {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .download-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 14px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-top-right-radius: var(--radius);
+      border-bottom-right-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .download-toggle:hover {
+      background: var(--primary-hover);
+    }
+
+    .download-toggle svg {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.15s;
+    }
+
+    .download-wrapper.open .download-toggle svg {
+      transform: rotate(180deg);
+    }
+
+    .download-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 260px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s, visibility 0.15s;
+      z-index: 50;
+    }
+
+    .download-wrapper.open .download-dropdown {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .download-dropdown-header {
+      padding: 12px 16px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--fg-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .download-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: var(--fg);
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+
+    .download-dropdown-item:hover {
+      background: var(--bg-accent);
+      color: var(--fg);
+    }
+
+    .download-dropdown-item svg {
+      width: 20px;
+      height: 20px;
+      opacity: 0.7;
+    }
+
+    .download-dropdown-item span {
+      flex: 1;
+    }
+
+    .download-dropdown-item .download-size {
+      font-size: 12px;
+      color: var(--fg-muted);
+      font-weight: 400;
+    }
+
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 12px;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .version-badge a {
+      color: var(--fg-muted);
+    }
+
+    .version-badge a:hover {
+      color: var(--fg);
+    }
+
     /* ---------- Screenshot ---------- */
     .screenshot {
       padding: 0 0 80px;
@@ -533,6 +666,18 @@
         justify-content: center;
       }
 
+      .download-wrapper {
+        width: 100%;
+      }
+
+      .download-main {
+        width: 100%;
+      }
+
+      .download-main .btn-primary {
+        flex: 1;
+      }
+
       .nav-links .nav-link-text {
         display: none;
       }
@@ -566,15 +711,19 @@
       <p class="hero-description">
         A lightweight desktop app for inspecting your local development environment. See everything at a glance &mdash; languages, tools, projects, and configs.
       </p>
-      <div class="hero-actions">
-        <a href="https://github.com/particular-labs/houston/releases/latest" class="btn btn-primary">
+      <div class="hero-actions" id="hero-download">
+        <!-- Dynamic download buttons inserted by JS -->
+        <a href="https://github.com/particular-labs/houston/releases/latest" class="btn btn-primary" id="hero-download-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download for macOS
+          <span>Download</span>
         </a>
         <a href="https://github.com/particular-labs/houston" class="btn btn-secondary" target="_blank" rel="noopener">
           <svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           View on GitHub
         </a>
+      </div>
+      <div class="version-badge" id="version-badge" style="display: none;">
+        <a href="https://github.com/particular-labs/houston/releases/latest" target="_blank" rel="noopener" id="version-link">v0.0.0</a>
       </div>
     </div>
   </section>
@@ -711,10 +860,11 @@
       <h2 class="section-title">Try Houston</h2>
       <p class="cta-subtitle">Free and open source. Download the latest release or build from source.</p>
 
-      <div class="cta-actions">
-        <a href="https://github.com/particular-labs/houston/releases/latest" class="btn btn-primary">
+      <div class="cta-actions" id="cta-download">
+        <!-- Dynamic download buttons inserted by JS -->
+        <a href="https://github.com/particular-labs/houston/releases/latest" class="btn btn-primary" id="cta-download-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 0-7.07 17.07A10 10 0 0 0 12 22a10 10 0 0 0 7.07-2.93A10 10 0 0 0 12 2z"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          Download for macOS
+          <span>Download</span>
         </a>
         <a href="https://github.com/particular-labs/houston" class="btn btn-secondary" target="_blank" rel="noopener">
           <svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -722,7 +872,7 @@
         </a>
       </div>
 
-      <p class="cta-note">macOS (Apple Silicon &amp; Intel) &middot; MIT License</p>
+      <p class="cta-note" id="cta-note">macOS (Apple Silicon &amp; Intel) &middot; MIT License</p>
     </div>
   </section>
 
@@ -738,6 +888,293 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    (function() {
+      // Platform detection
+      function detectPlatform() {
+        const ua = navigator.userAgent.toLowerCase();
+        const platform = navigator.platform.toLowerCase();
+
+        // macOS detection
+        if (platform.includes('mac') || ua.includes('macintosh') || ua.includes('mac os x')) {
+          // Check for Apple Silicon
+          // Note: This is a heuristic - browsers don't expose CPU architecture directly
+          // We default to ARM for newer Macs but offer both options
+          return { os: 'macos', label: 'macOS' };
+        }
+
+        // Windows detection
+        if (platform.includes('win') || ua.includes('windows')) {
+          return { os: 'windows', label: 'Windows' };
+        }
+
+        // Linux detection
+        if (platform.includes('linux') || ua.includes('linux')) {
+          return { os: 'linux', label: 'Linux' };
+        }
+
+        // Unknown - default to releases page
+        return { os: 'unknown', label: 'Your Platform' };
+      }
+
+      // Asset matchers for GitHub releases
+      const assetPatterns = {
+        'macos-arm': { pattern: /_aarch64\.app\.tar\.gz$/, label: 'Mac (Apple Silicon)', icon: 'apple' },
+        'macos-intel': { pattern: /_x64\.app\.tar\.gz$/, label: 'Mac (Intel)', icon: 'apple' },
+        'windows': { pattern: /_x64-setup\.exe$/, label: 'Windows', icon: 'windows' },
+        'linux-deb': { pattern: /\.deb$/, label: 'Linux (deb)', icon: 'linux' },
+        'linux-appimage': { pattern: /\.AppImage$/, label: 'Linux (AppImage)', icon: 'linux' },
+        'linux-rpm': { pattern: /\.rpm$/, label: 'Linux (rpm)', icon: 'linux' },
+      };
+
+      // Icons for different platforms
+      const icons = {
+        apple: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>',
+        windows: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12V6.75l6-1V12H3zm0 1.25v5.75l6-1V13.25H3zm6.5 5.5v-5.5h8v6.75l-8-1.25zM3 12v.25h6V12H3zM9.5 5l8 1.25v5.75h-8V5z"/></svg>',
+        linux: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.311.014-.466.042-.639.116-1.26.389-1.799.801-.523.4-.98.927-1.334 1.543-.335.584-.574 1.241-.705 1.935-.119.629-.147 1.287-.084 1.93l.018.18c.036.365.091.725.165 1.078.077.367.172.726.284 1.071.116.359.25.706.401 1.038l.035.076c.15.328.32.642.51.94.195.303.41.587.647.851.243.27.509.517.796.738.145.112.297.218.454.315.16.1.326.19.497.27.174.082.354.155.54.217.187.064.379.116.575.155.196.04.397.066.6.078.203.013.407.012.611-.003.205-.014.41-.044.612-.088a4.9 4.9 0 0 0 .584-.158c.191-.063.377-.14.558-.229.179-.087.352-.186.516-.297a4.9 4.9 0 0 0 .464-.355c.148-.13.288-.27.42-.419a4.9 4.9 0 0 0 .355-.464 4.6 4.6 0 0 0 .297-.516c.09-.181.166-.367.229-.558.064-.192.114-.388.151-.588.037-.2.06-.403.068-.607.01-.204.005-.408-.013-.611a4.5 4.5 0 0 0-.078-.6 4.5 4.5 0 0 0-.156-.575 4.5 4.5 0 0 0-.217-.54 4.5 4.5 0 0 0-.27-.497 4.5 4.5 0 0 0-.315-.454 4.9 4.9 0 0 0-.355-.409 4.5 4.5 0 0 0-.39-.355 5 5 0 0 0-.42-.296 4.5 4.5 0 0 0-.448-.236 4.5 4.5 0 0 0-.472-.174 4.5 4.5 0 0 0-.494-.111 4.5 4.5 0 0 0-.506-.047 5 5 0 0 0-.515.016zm-.085 1.528a3 3 0 0 1 .343.031c.112.017.223.041.332.073.108.031.214.07.317.115.101.044.199.095.293.152.093.056.181.118.265.185.082.066.16.138.232.213.072.076.138.156.199.24.06.084.114.172.161.263.047.09.088.184.122.28.035.095.062.193.082.293.021.1.034.2.04.302.006.102.004.204-.006.306a2.5 2.5 0 0 1-.057.304c-.027.1-.06.198-.101.293a2.5 2.5 0 0 1-.143.275c-.058.088-.122.172-.19.25a2.4 2.4 0 0 1-.228.222 2.4 2.4 0 0 1-.26.188 2.5 2.5 0 0 1-.284.15 2.5 2.5 0 0 1-.303.11 2.5 2.5 0 0 1-.317.068 2.5 2.5 0 0 1-.324.025 2.5 2.5 0 0 1-.327-.018 2.5 2.5 0 0 1-.323-.062 2.5 2.5 0 0 1-.313-.106 2.5 2.5 0 0 1-.297-.148 2.5 2.5 0 0 1-.274-.186 2.4 2.4 0 0 1-.244-.219 2.4 2.4 0 0 1-.21-.25 2.5 2.5 0 0 1-.17-.275 2.5 2.5 0 0 1-.127-.295 2.5 2.5 0 0 1-.082-.31 2.5 2.5 0 0 1-.036-.32c-.004-.107 0-.214.013-.32a2.5 2.5 0 0 1 .06-.312c.028-.102.064-.201.106-.297.043-.095.092-.187.148-.273a2.4 2.4 0 0 1 .187-.252 2.4 2.4 0 0 1 .222-.227c.082-.072.169-.138.26-.198.091-.06.186-.113.284-.159a2.5 2.5 0 0 1 .307-.102c.105-.029.213-.05.322-.063zm5.326 9.235c-.3.154-.584.34-.843.558-.26.218-.496.466-.7.74a3.4 3.4 0 0 0-.5.879c-.134.316-.227.65-.275.99a3.5 3.5 0 0 0-.013 1.013c.04.334.123.66.247.967.125.307.29.594.492.85.2.256.434.478.694.664.26.186.545.334.845.44.3.106.615.17.934.187.32.017.64-.012.952-.087a3.4 3.4 0 0 0 .888-.343c.278-.16.534-.357.758-.586a3.4 3.4 0 0 0 .586-.758c.16-.278.283-.574.365-.882a3.5 3.5 0 0 0 .108-.927 3.5 3.5 0 0 0-.087-.934 3.4 3.4 0 0 0-.278-.888 3.4 3.4 0 0 0-.45-.78 3.4 3.4 0 0 0-.601-.64 3.5 3.5 0 0 0-.726-.466 3.4 3.4 0 0 0-.821-.269 3.5 3.5 0 0 0-.872-.057c-.293.021-.582.082-.858.179a3.4 3.4 0 0 0-.784.37 3.4 3.4 0 0 0-.66.542 3.5 3.5 0 0 0-.1.106zm-11.514-.002c.293.022.582.082.858.18.276.097.538.229.78.392.242.163.462.355.654.574.192.219.355.462.485.724.13.261.226.539.285.826a3.5 3.5 0 0 1 .035.873 3.4 3.4 0 0 1-.152.852 3.4 3.4 0 0 1-.338.783c-.147.249-.326.475-.533.672a3.4 3.4 0 0 1-.694.52 3.4 3.4 0 0 1-.819.328 3.5 3.5 0 0 1-.878.114 3.5 3.5 0 0 1-.878-.114 3.4 3.4 0 0 1-.82-.328 3.4 3.4 0 0 1-.693-.52 3.4 3.4 0 0 1-.534-.672 3.4 3.4 0 0 1-.337-.783 3.4 3.4 0 0 1-.153-.852 3.5 3.5 0 0 1 .036-.873c.059-.287.155-.565.285-.826.13-.262.293-.505.485-.724.192-.219.412-.411.654-.574.242-.163.504-.295.78-.392.276-.098.565-.158.858-.18.073-.005.146-.008.22-.008.073 0 .146.003.22.008z"/></svg>',
+        download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+      };
+
+      // Format file size
+      function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      // Find asset by pattern
+      function findAsset(assets, pattern) {
+        return assets.find(a => pattern.test(a.name));
+      }
+
+      // Create download dropdown HTML
+      function createDownloadDropdown(platform, assets, version) {
+        const platformAssets = [];
+
+        // Determine primary download based on platform
+        let primaryKey, primaryAsset;
+
+        if (platform.os === 'macos') {
+          // For macOS, show ARM as primary (most common now), with dropdown for both
+          primaryKey = 'macos-arm';
+          primaryAsset = findAsset(assets, assetPatterns['macos-arm'].pattern);
+          if (!primaryAsset) {
+            primaryKey = 'macos-intel';
+            primaryAsset = findAsset(assets, assetPatterns['macos-intel'].pattern);
+          }
+
+          // Add both macOS options to dropdown
+          const armAsset = findAsset(assets, assetPatterns['macos-arm'].pattern);
+          const intelAsset = findAsset(assets, assetPatterns['macos-intel'].pattern);
+          if (armAsset) platformAssets.push({ key: 'macos-arm', asset: armAsset });
+          if (intelAsset) platformAssets.push({ key: 'macos-intel', asset: intelAsset });
+        } else if (platform.os === 'windows') {
+          primaryKey = 'windows';
+          primaryAsset = findAsset(assets, assetPatterns['windows'].pattern);
+          if (primaryAsset) platformAssets.push({ key: 'windows', asset: primaryAsset });
+        } else if (platform.os === 'linux') {
+          // For Linux, show AppImage as primary
+          primaryKey = 'linux-appimage';
+          primaryAsset = findAsset(assets, assetPatterns['linux-appimage'].pattern);
+          if (!primaryAsset) {
+            primaryKey = 'linux-deb';
+            primaryAsset = findAsset(assets, assetPatterns['linux-deb'].pattern);
+          }
+
+          // Add all Linux options
+          const appImage = findAsset(assets, assetPatterns['linux-appimage'].pattern);
+          const deb = findAsset(assets, assetPatterns['linux-deb'].pattern);
+          const rpm = findAsset(assets, assetPatterns['linux-rpm'].pattern);
+          if (appImage) platformAssets.push({ key: 'linux-appimage', asset: appImage });
+          if (deb) platformAssets.push({ key: 'linux-deb', asset: deb });
+          if (rpm) platformAssets.push({ key: 'linux-rpm', asset: rpm });
+        }
+
+        // Build "Other platforms" list
+        const otherPlatforms = [];
+        for (const [key, config] of Object.entries(assetPatterns)) {
+          if (!platformAssets.find(p => p.key === key)) {
+            const asset = findAsset(assets, config.pattern);
+            if (asset) {
+              otherPlatforms.push({ key, asset });
+            }
+          }
+        }
+
+        // If no primary asset found, fall back to releases page
+        if (!primaryAsset) {
+          return {
+            primary: {
+              url: 'https://github.com/particular-labs/houston/releases/latest',
+              label: 'Download',
+            },
+            dropdown: null,
+          };
+        }
+
+        // Build dropdown items
+        const dropdownItems = [...platformAssets, ...otherPlatforms];
+
+        return {
+          primary: {
+            url: primaryAsset.browser_download_url,
+            label: 'Download for ' + assetPatterns[primaryKey].label,
+          },
+          dropdown: dropdownItems.length > 1 ? dropdownItems : null,
+        };
+      }
+
+      // Update the page with release data
+      function updateDownloadButtons(release) {
+        const platform = detectPlatform();
+        const version = release.tag_name;
+        const assets = release.assets || [];
+
+        const downloadData = createDownloadDropdown(platform, assets, version);
+
+        // Update hero section
+        const heroBtn = document.getElementById('hero-download-btn');
+        if (heroBtn) {
+          heroBtn.href = downloadData.primary.url;
+          heroBtn.querySelector('span').textContent = downloadData.primary.label;
+        }
+
+        // Update CTA section
+        const ctaBtn = document.getElementById('cta-download-btn');
+        if (ctaBtn) {
+          ctaBtn.href = downloadData.primary.url;
+          ctaBtn.querySelector('span').textContent = downloadData.primary.label;
+        }
+
+        // Show version badge
+        const versionBadge = document.getElementById('version-badge');
+        const versionLink = document.getElementById('version-link');
+        if (versionBadge && versionLink) {
+          versionLink.textContent = version;
+          versionLink.href = release.html_url;
+          versionBadge.style.display = 'inline-flex';
+        }
+
+        // Update CTA note with available platforms
+        const ctaNote = document.getElementById('cta-note');
+        if (ctaNote) {
+          const platforms = [];
+          if (findAsset(assets, assetPatterns['macos-arm'].pattern) || findAsset(assets, assetPatterns['macos-intel'].pattern)) {
+            platforms.push('macOS (Apple Silicon & Intel)');
+          }
+          if (findAsset(assets, assetPatterns['windows'].pattern)) {
+            platforms.push('Windows');
+          }
+          if (findAsset(assets, assetPatterns['linux-appimage'].pattern) || findAsset(assets, assetPatterns['linux-deb'].pattern)) {
+            platforms.push('Linux');
+          }
+          ctaNote.innerHTML = platforms.join(' · ') + ' · MIT License';
+        }
+
+        // Add dropdown if there are multiple options
+        if (downloadData.dropdown && downloadData.dropdown.length > 1) {
+          addDropdownToButton('hero-download', downloadData, assets);
+          addDropdownToButton('cta-download', downloadData, assets);
+        }
+      }
+
+      // Add dropdown functionality to a download button
+      function addDropdownToButton(containerId, downloadData, assets) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const btn = document.getElementById(containerId + '-btn');
+        if (!btn) return;
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'download-wrapper';
+
+        // Create main download group
+        const mainGroup = document.createElement('div');
+        mainGroup.className = 'download-main';
+
+        // Move button into main group
+        btn.parentNode.insertBefore(wrapper, btn);
+        mainGroup.appendChild(btn);
+
+        // Create toggle button
+        const toggle = document.createElement('button');
+        toggle.className = 'download-toggle';
+        toggle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+        toggle.setAttribute('aria-label', 'More download options');
+        mainGroup.appendChild(toggle);
+
+        wrapper.appendChild(mainGroup);
+
+        // Create dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'download-dropdown';
+
+        // Add header
+        const header = document.createElement('div');
+        header.className = 'download-dropdown-header';
+        header.textContent = 'All Downloads';
+        dropdown.appendChild(header);
+
+        // Add dropdown items
+        for (const item of downloadData.dropdown) {
+          const config = assetPatterns[item.key];
+          const link = document.createElement('a');
+          link.className = 'download-dropdown-item';
+          link.href = item.asset.browser_download_url;
+
+          const iconType = config.icon || 'download';
+          link.innerHTML = `
+            ${icons[iconType]}
+            <span>${config.label}</span>
+            <span class="download-size">${formatSize(item.asset.size)}</span>
+          `;
+          dropdown.appendChild(link);
+        }
+
+        wrapper.appendChild(dropdown);
+
+        // Toggle dropdown on click
+        toggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          wrapper.classList.toggle('open');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!wrapper.contains(e.target)) {
+            wrapper.classList.remove('open');
+          }
+        });
+      }
+
+      // Fetch latest release from GitHub API
+      function fetchLatestRelease() {
+        fetch('https://api.github.com/repos/particular-labs/houston/releases/latest')
+          .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch release');
+            return response.json();
+          })
+          .then(release => {
+            updateDownloadButtons(release);
+          })
+          .catch(error => {
+            console.warn('Could not fetch release info:', error);
+            // Keep static fallback buttons
+          });
+      }
+
+      // Initialize on page load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fetchLatestRelease);
+      } else {
+        fetchLatestRelease();
+      }
+    })();
+  </script>
 
 </body>
 </html>

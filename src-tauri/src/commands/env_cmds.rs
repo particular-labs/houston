@@ -1,9 +1,14 @@
+use crate::demo;
 use crate::scanners::environment;
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub fn get_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> {
+    if demo::is_enabled() {
+        return demo::mock_env_vars();
+    }
+
     let mut cache = state.env_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.env_stats.record_hit();
@@ -24,6 +29,10 @@ pub fn get_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> 
 
 #[tauri::command]
 pub fn refresh_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> {
+    if demo::is_enabled() {
+        return demo::mock_env_vars();
+    }
+
     let mut cache = state.env_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();

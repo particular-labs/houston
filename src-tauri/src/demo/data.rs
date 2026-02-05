@@ -1,0 +1,623 @@
+//! Static mock data definitions for demo mode.
+//! These provide realistic-looking sample data for screenshots without exposing real user data.
+
+use crate::scanners::{
+    ai_tools::{AiToolInfo, AiToolsReport, InstallMethod, ToolType},
+    diagnostics::{DiagnosticItem, DiagnosticReport, Severity},
+    environment::EnvVarInfo,
+    git::GitStatus,
+    languages::LanguageInfo,
+    packages::{PackageInfo, PackageList},
+    path::PathEntry,
+    system::SystemInfo,
+    workspace::ProjectInfo,
+};
+
+/// Mock system information for a generic macOS setup.
+pub fn mock_system_info() -> SystemInfo {
+    SystemInfo {
+        os_name: "macOS".to_string(),
+        os_version: "15.2".to_string(),
+        kernel_version: "Darwin 24.2.0".to_string(),
+        architecture: "aarch64".to_string(),
+        hostname: "Macintosh".to_string(),
+        shell: "zsh".to_string(),
+        shell_version: "zsh 5.9 (arm-apple-darwin24.0.0)".to_string(),
+        cpu_brand: "Apple M3 Pro".to_string(),
+        memory_gb: "36 GB".to_string(),
+        username: "developer".to_string(),
+        home_dir: "/Users/developer".to_string(),
+        binary_architecture: "aarch64".to_string(),
+        architecture_mismatch: false,
+    }
+}
+
+/// Mock PATH entries showing a typical developer setup.
+pub fn mock_path_entries() -> Vec<PathEntry> {
+    vec![
+        PathEntry {
+            path: "/opt/homebrew/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 0,
+            category: "Homebrew".to_string(),
+        },
+        PathEntry {
+            path: "/opt/homebrew/sbin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 1,
+            category: "Homebrew".to_string(),
+        },
+        PathEntry {
+            path: "/Users/developer/.cargo/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 2,
+            category: "Rust".to_string(),
+        },
+        PathEntry {
+            path: "/Users/developer/.nvm/versions/node/v22.0.0/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 3,
+            category: "Node.js".to_string(),
+        },
+        PathEntry {
+            path: "/Users/developer/.pyenv/shims".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 4,
+            category: "Python".to_string(),
+        },
+        PathEntry {
+            path: "/Users/developer/go/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 5,
+            category: "Go".to_string(),
+        },
+        PathEntry {
+            path: "/usr/local/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 6,
+            category: "Usr Local".to_string(),
+        },
+        PathEntry {
+            path: "/usr/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 7,
+            category: "System".to_string(),
+        },
+        PathEntry {
+            path: "/bin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 8,
+            category: "System".to_string(),
+        },
+        PathEntry {
+            path: "/usr/sbin".to_string(),
+            exists: true,
+            is_duplicate: false,
+            index: 9,
+            category: "System".to_string(),
+        },
+    ]
+}
+
+/// Mock language installations.
+pub fn mock_languages() -> Vec<LanguageInfo> {
+    vec![
+        LanguageInfo {
+            name: "Node.js".to_string(),
+            version: "22.0.0".to_string(),
+            binary_path: "/Users/developer/.nvm/versions/node/v22.0.0/bin/node".to_string(),
+            manager: "nvm".to_string(),
+            installed: true,
+            icon: "node".to_string(),
+        },
+        LanguageInfo {
+            name: "Python".to_string(),
+            version: "3.12.0".to_string(),
+            binary_path: "/Users/developer/.pyenv/shims/python3".to_string(),
+            manager: "pyenv".to_string(),
+            installed: true,
+            icon: "python".to_string(),
+        },
+        LanguageInfo {
+            name: "Rust".to_string(),
+            version: "1.84.0".to_string(),
+            binary_path: "/Users/developer/.cargo/bin/rustc".to_string(),
+            manager: "rustup".to_string(),
+            installed: true,
+            icon: "rust".to_string(),
+        },
+        LanguageInfo {
+            name: "Go".to_string(),
+            version: "1.22.0".to_string(),
+            binary_path: "/opt/homebrew/bin/go".to_string(),
+            manager: "homebrew".to_string(),
+            installed: true,
+            icon: "go".to_string(),
+        },
+        LanguageInfo {
+            name: "Ruby".to_string(),
+            version: "3.3.0".to_string(),
+            binary_path: "/opt/homebrew/opt/ruby/bin/ruby".to_string(),
+            manager: "homebrew".to_string(),
+            installed: true,
+            icon: "ruby".to_string(),
+        },
+        LanguageInfo {
+            name: "Bun".to_string(),
+            version: "1.1.38".to_string(),
+            binary_path: "/Users/developer/.bun/bin/bun".to_string(),
+            manager: "system".to_string(),
+            installed: true,
+            icon: "bun".to_string(),
+        },
+        LanguageInfo {
+            name: "Java".to_string(),
+            version: String::new(),
+            binary_path: String::new(),
+            manager: String::new(),
+            installed: false,
+            icon: "java".to_string(),
+        },
+        LanguageInfo {
+            name: "PHP".to_string(),
+            version: String::new(),
+            binary_path: String::new(),
+            manager: String::new(),
+            installed: false,
+            icon: "php".to_string(),
+        },
+        LanguageInfo {
+            name: "Deno".to_string(),
+            version: String::new(),
+            binary_path: String::new(),
+            manager: String::new(),
+            installed: false,
+            icon: "deno".to_string(),
+        },
+    ]
+}
+
+/// Mock environment variables.
+pub fn mock_env_vars() -> Vec<EnvVarInfo> {
+    vec![
+        EnvVarInfo {
+            key: "CARGO_HOME".to_string(),
+            value: "/Users/developer/.cargo".to_string(),
+            category: "Language".to_string(),
+        },
+        EnvVarInfo {
+            key: "EDITOR".to_string(),
+            value: "code --wait".to_string(),
+            category: "Shell".to_string(),
+        },
+        EnvVarInfo {
+            key: "GOPATH".to_string(),
+            value: "/Users/developer/go".to_string(),
+            category: "Language".to_string(),
+        },
+        EnvVarInfo {
+            key: "HOME".to_string(),
+            value: "/Users/developer".to_string(),
+            category: "System".to_string(),
+        },
+        EnvVarInfo {
+            key: "LANG".to_string(),
+            value: "en_US.UTF-8".to_string(),
+            category: "Shell".to_string(),
+        },
+        EnvVarInfo {
+            key: "NVM_DIR".to_string(),
+            value: "/Users/developer/.nvm".to_string(),
+            category: "Language".to_string(),
+        },
+        EnvVarInfo {
+            key: "PATH".to_string(),
+            value: "/opt/homebrew/bin:/Users/developer/.cargo/bin:...".to_string(),
+            category: "Path".to_string(),
+        },
+        EnvVarInfo {
+            key: "PYENV_ROOT".to_string(),
+            value: "/Users/developer/.pyenv".to_string(),
+            category: "Language".to_string(),
+        },
+        EnvVarInfo {
+            key: "RUSTUP_HOME".to_string(),
+            value: "/Users/developer/.rustup".to_string(),
+            category: "Language".to_string(),
+        },
+        EnvVarInfo {
+            key: "SHELL".to_string(),
+            value: "/bin/zsh".to_string(),
+            category: "Shell".to_string(),
+        },
+        EnvVarInfo {
+            key: "TERM".to_string(),
+            value: "xterm-256color".to_string(),
+            category: "Shell".to_string(),
+        },
+        EnvVarInfo {
+            key: "USER".to_string(),
+            value: "developer".to_string(),
+            category: "System".to_string(),
+        },
+    ]
+}
+
+/// Mock projects for the workspace.
+pub fn mock_projects() -> Vec<ProjectInfo> {
+    vec![
+        ProjectInfo {
+            name: "acme-web".to_string(),
+            path: "/Users/developer/Projects/acme-web".to_string(),
+            project_type: "Web App".to_string(),
+            framework: "Next.js".to_string(),
+            package_manager: "pnpm".to_string(),
+            description: "Main marketing website and dashboard".to_string(),
+            has_git: true,
+            group: String::new(),
+            group_type: String::new(),
+            is_monorepo_root: false,
+            worktree_id: String::new(),
+        },
+        ProjectInfo {
+            name: "acme-api".to_string(),
+            path: "/Users/developer/Projects/acme-api".to_string(),
+            project_type: "Backend".to_string(),
+            framework: "Express".to_string(),
+            package_manager: "npm".to_string(),
+            description: "REST API backend service".to_string(),
+            has_git: true,
+            group: String::new(),
+            group_type: String::new(),
+            is_monorepo_root: false,
+            worktree_id: String::new(),
+        },
+        ProjectInfo {
+            name: "acme-mobile".to_string(),
+            path: "/Users/developer/Projects/acme-mobile".to_string(),
+            project_type: "Mobile App".to_string(),
+            framework: "React Native".to_string(),
+            package_manager: "yarn".to_string(),
+            description: "iOS and Android mobile app".to_string(),
+            has_git: true,
+            group: String::new(),
+            group_type: String::new(),
+            is_monorepo_root: false,
+            worktree_id: String::new(),
+        },
+        ProjectInfo {
+            name: "dev-tools".to_string(),
+            path: "/Users/developer/Projects/dev-tools".to_string(),
+            project_type: "CLI".to_string(),
+            framework: "Rust CLI".to_string(),
+            package_manager: "cargo".to_string(),
+            description: "Internal developer tooling".to_string(),
+            has_git: true,
+            group: String::new(),
+            group_type: String::new(),
+            is_monorepo_root: false,
+            worktree_id: String::new(),
+        },
+        ProjectInfo {
+            name: "design-system".to_string(),
+            path: "/Users/developer/Projects/design-system".to_string(),
+            project_type: "Library".to_string(),
+            framework: "React".to_string(),
+            package_manager: "pnpm".to_string(),
+            description: "Shared UI component library".to_string(),
+            has_git: true,
+            group: String::new(),
+            group_type: String::new(),
+            is_monorepo_root: true,
+            worktree_id: String::new(),
+        },
+        ProjectInfo {
+            name: "data-pipeline".to_string(),
+            path: "/Users/developer/Projects/data-pipeline".to_string(),
+            project_type: "Application".to_string(),
+            framework: "Python".to_string(),
+            package_manager: "pip".to_string(),
+            description: "ETL and data processing pipeline".to_string(),
+            has_git: true,
+            group: String::new(),
+            group_type: String::new(),
+            is_monorepo_root: false,
+            worktree_id: String::new(),
+        },
+    ]
+}
+
+/// Mock git statuses for projects.
+pub fn mock_git_statuses() -> Vec<GitStatus> {
+    vec![
+        GitStatus {
+            project_path: "/Users/developer/Projects/acme-web".to_string(),
+            branch: "main".to_string(),
+            is_dirty: false,
+            modified_count: 0,
+            untracked_count: 0,
+            staged_count: 0,
+            ahead: 0,
+            behind: 0,
+            last_commit_message: "chore: update dependencies".to_string(),
+            last_commit_date: "2 hours ago".to_string(),
+            remote_url: "https://github.com/acme/acme-web.git".to_string(),
+        },
+        GitStatus {
+            project_path: "/Users/developer/Projects/acme-api".to_string(),
+            branch: "feature/auth-v2".to_string(),
+            is_dirty: true,
+            modified_count: 3,
+            untracked_count: 1,
+            staged_count: 2,
+            ahead: 5,
+            behind: 0,
+            last_commit_message: "feat: add JWT refresh token support".to_string(),
+            last_commit_date: "30 minutes ago".to_string(),
+            remote_url: "https://github.com/acme/acme-api.git".to_string(),
+        },
+        GitStatus {
+            project_path: "/Users/developer/Projects/acme-mobile".to_string(),
+            branch: "develop".to_string(),
+            is_dirty: true,
+            modified_count: 1,
+            untracked_count: 0,
+            staged_count: 0,
+            ahead: 0,
+            behind: 3,
+            last_commit_message: "fix: navigation stack reset on logout".to_string(),
+            last_commit_date: "1 day ago".to_string(),
+            remote_url: "https://github.com/acme/acme-mobile.git".to_string(),
+        },
+        GitStatus {
+            project_path: "/Users/developer/Projects/dev-tools".to_string(),
+            branch: "main".to_string(),
+            is_dirty: false,
+            modified_count: 0,
+            untracked_count: 0,
+            staged_count: 0,
+            ahead: 0,
+            behind: 0,
+            last_commit_message: "release: v0.5.0".to_string(),
+            last_commit_date: "3 days ago".to_string(),
+            remote_url: "https://github.com/acme/dev-tools.git".to_string(),
+        },
+        GitStatus {
+            project_path: "/Users/developer/Projects/design-system".to_string(),
+            branch: "main".to_string(),
+            is_dirty: true,
+            modified_count: 5,
+            untracked_count: 2,
+            staged_count: 0,
+            ahead: 0,
+            behind: 0,
+            last_commit_message: "feat: add dark mode variants".to_string(),
+            last_commit_date: "5 hours ago".to_string(),
+            remote_url: "https://github.com/acme/design-system.git".to_string(),
+        },
+        GitStatus {
+            project_path: "/Users/developer/Projects/data-pipeline".to_string(),
+            branch: "main".to_string(),
+            is_dirty: false,
+            modified_count: 0,
+            untracked_count: 0,
+            staged_count: 0,
+            ahead: 2,
+            behind: 0,
+            last_commit_message: "perf: optimize batch processing".to_string(),
+            last_commit_date: "1 hour ago".to_string(),
+            remote_url: "https://github.com/acme/data-pipeline.git".to_string(),
+        },
+    ]
+}
+
+/// Mock package lists.
+pub fn mock_packages() -> PackageList {
+    PackageList {
+        npm_global: vec![
+            PackageInfo {
+                name: "@anthropic-ai/claude-code".to_string(),
+                version: "1.0.34".to_string(),
+            },
+            PackageInfo {
+                name: "typescript".to_string(),
+                version: "5.7.2".to_string(),
+            },
+            PackageInfo {
+                name: "pnpm".to_string(),
+                version: "10.0.0".to_string(),
+            },
+            PackageInfo {
+                name: "vercel".to_string(),
+                version: "39.2.2".to_string(),
+            },
+            PackageInfo {
+                name: "eslint".to_string(),
+                version: "9.17.0".to_string(),
+            },
+        ],
+        brew: vec![
+            PackageInfo {
+                name: "git".to_string(),
+                version: "2.47.1".to_string(),
+            },
+            PackageInfo {
+                name: "go".to_string(),
+                version: "1.22.0".to_string(),
+            },
+            PackageInfo {
+                name: "jq".to_string(),
+                version: "1.7.1".to_string(),
+            },
+            PackageInfo {
+                name: "ripgrep".to_string(),
+                version: "14.1.1".to_string(),
+            },
+            PackageInfo {
+                name: "gh".to_string(),
+                version: "2.64.0".to_string(),
+            },
+            PackageInfo {
+                name: "fzf".to_string(),
+                version: "0.57.0".to_string(),
+            },
+        ],
+        pip: vec![
+            PackageInfo {
+                name: "pip".to_string(),
+                version: "24.3.1".to_string(),
+            },
+            PackageInfo {
+                name: "requests".to_string(),
+                version: "2.32.3".to_string(),
+            },
+            PackageInfo {
+                name: "black".to_string(),
+                version: "24.10.0".to_string(),
+            },
+        ],
+        cargo: vec![
+            PackageInfo {
+                name: "cargo-watch".to_string(),
+                version: "8.5.3".to_string(),
+            },
+            PackageInfo {
+                name: "tauri-cli".to_string(),
+                version: "2.2.3".to_string(),
+            },
+            PackageInfo {
+                name: "sccache".to_string(),
+                version: "0.9.0".to_string(),
+            },
+        ],
+        scoop: vec![],
+        chocolatey: vec![],
+    }
+}
+
+/// Mock AI tools report.
+pub fn mock_ai_tools() -> AiToolsReport {
+    AiToolsReport {
+        tools: vec![
+            AiToolInfo {
+                name: "Claude Code".to_string(),
+                binary: "claude".to_string(),
+                installed: true,
+                version: Some("1.0.34".to_string()),
+                latest_version: Some("1.0.34".to_string()),
+                update_available: false,
+                install_method: InstallMethod::Npm,
+                package_name: "@anthropic-ai/claude-code".to_string(),
+                binary_path: Some("/Users/developer/.nvm/versions/node/v22.0.0/bin/claude".to_string()),
+                install_hint: "npm i -g @anthropic-ai/claude-code".to_string(),
+                tool_type: ToolType::Cli,
+                app_name: None,
+                app_installed: false,
+                app_path: None,
+                app_version: None,
+                config_dir: Some("/Users/developer/.claude".to_string()),
+                has_ai: true,
+                ai_features: vec!["Agent".to_string(), "Chat".to_string(), "MCP".to_string()],
+            },
+            AiToolInfo {
+                name: "Claude Desktop".to_string(),
+                binary: String::new(),
+                installed: true,
+                version: None,
+                latest_version: None,
+                update_available: false,
+                install_method: InstallMethod::SelfManaged,
+                package_name: String::new(),
+                binary_path: None,
+                install_hint: "https://claude.ai/download".to_string(),
+                tool_type: ToolType::App,
+                app_name: Some("Claude.app".to_string()),
+                app_installed: true,
+                app_path: Some("/Applications/Claude.app".to_string()),
+                app_version: Some("0.8.1".to_string()),
+                config_dir: Some("/Users/developer/Library/Application Support/Claude".to_string()),
+                has_ai: true,
+                ai_features: vec!["Chat".to_string(), "MCP".to_string(), "Artifacts".to_string()],
+            },
+            AiToolInfo {
+                name: "Cursor".to_string(),
+                binary: "cursor".to_string(),
+                installed: true,
+                version: Some("0.44.11".to_string()),
+                latest_version: None,
+                update_available: false,
+                install_method: InstallMethod::SelfManaged,
+                package_name: String::new(),
+                binary_path: Some("/usr/local/bin/cursor".to_string()),
+                install_hint: "https://cursor.sh".to_string(),
+                tool_type: ToolType::Both,
+                app_name: Some("Cursor.app".to_string()),
+                app_installed: true,
+                app_path: Some("/Applications/Cursor.app".to_string()),
+                app_version: Some("0.44.11".to_string()),
+                config_dir: Some("/Users/developer/.cursor".to_string()),
+                has_ai: true,
+                ai_features: vec!["Autocomplete".to_string(), "Chat".to_string(), "Agent".to_string()],
+            },
+            AiToolInfo {
+                name: "GitHub Copilot CLI".to_string(),
+                binary: "gh copilot".to_string(),
+                installed: true,
+                version: Some("1.0.5".to_string()),
+                latest_version: Some("1.0.5".to_string()),
+                update_available: false,
+                install_method: InstallMethod::GhExtension,
+                package_name: "gh-copilot".to_string(),
+                binary_path: Some("/opt/homebrew/bin/gh".to_string()),
+                install_hint: "gh extension install github/gh-copilot".to_string(),
+                tool_type: ToolType::Cli,
+                app_name: None,
+                app_installed: false,
+                app_path: None,
+                app_version: None,
+                config_dir: None,
+                has_ai: true,
+                ai_features: vec!["Shell suggestions".to_string(), "Explain".to_string()],
+            },
+        ],
+        scanned_at: chrono::Utc::now().to_rfc3339(),
+    }
+}
+
+/// Mock diagnostics report.
+pub fn mock_diagnostics() -> DiagnosticReport {
+    DiagnosticReport {
+        items: vec![
+            DiagnosticItem {
+                id: "demo-info-1".to_string(),
+                category: "Languages".to_string(),
+                severity: Severity::Info,
+                title: "Multiple Node.js versions available".to_string(),
+                description: "You have nvm installed with multiple Node.js versions. Current: v22.0.0".to_string(),
+                details: Some("Available versions: v22.0.0 (current), v20.18.1, v18.20.5".to_string()),
+                fix_id: None,
+                fix_label: None,
+            },
+            DiagnosticItem {
+                id: "demo-suggestion-1".to_string(),
+                category: "Git".to_string(),
+                severity: Severity::Suggestion,
+                title: "Consider enabling git credential helper".to_string(),
+                description: "Git credential caching is not configured. This may result in repeated authentication prompts.".to_string(),
+                details: None,
+                fix_id: Some("git-credential-helper".to_string()),
+                fix_label: Some("Configure credential helper".to_string()),
+            },
+        ],
+        scanned_at: chrono::Utc::now().to_rfc3339(),
+    }
+}

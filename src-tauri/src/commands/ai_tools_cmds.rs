@@ -1,9 +1,14 @@
+use crate::demo;
 use crate::scanners::ai_tools;
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub fn get_ai_tools(state: State<'_, AppState>) -> ai_tools::AiToolsReport {
+    if demo::is_enabled() {
+        return demo::mock_ai_tools();
+    }
+
     let mut cache = state.ai_tools_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.ai_tools_stats.record_hit();
@@ -24,6 +29,10 @@ pub fn get_ai_tools(state: State<'_, AppState>) -> ai_tools::AiToolsReport {
 
 #[tauri::command]
 pub fn refresh_ai_tools(state: State<'_, AppState>) -> ai_tools::AiToolsReport {
+    if demo::is_enabled() {
+        return demo::mock_ai_tools();
+    }
+
     let mut cache = state.ai_tools_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();
@@ -41,6 +50,9 @@ pub fn refresh_ai_tools(state: State<'_, AppState>) -> ai_tools::AiToolsReport {
 
 #[tauri::command]
 pub fn get_tool_mcp_servers(tool_name: String) -> Vec<crate::scanners::claude::McpServer> {
+    if demo::is_enabled() {
+        return vec![];
+    }
     crate::scanners::ai_tools::scan_mcp_servers(&tool_name)
 }
 
@@ -50,6 +62,14 @@ pub fn update_ai_tool(
     state: State<'_, AppState>,
 ) -> crate::scanners::diagnostics::FixResult {
     use crate::scanners::diagnostics::FixResult;
+
+    if demo::is_enabled() {
+        return FixResult {
+            success: true,
+            message: format!("Demo mode: {} update simulated", tool_name),
+            output: None,
+        };
+    }
 
     let Some((cmd, args)) = ai_tools::get_update_command(&tool_name) else {
         return FixResult {

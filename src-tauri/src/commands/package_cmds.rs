@@ -1,9 +1,14 @@
+use crate::demo;
 use crate::scanners::packages;
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub fn get_packages(state: State<'_, AppState>) -> packages::PackageList {
+    if demo::is_enabled() {
+        return demo::mock_packages();
+    }
+
     let mut cache = state.package_cache.lock().unwrap();
     if let Some(cached) = cache.get() {
         state.package_stats.record_hit();
@@ -24,6 +29,10 @@ pub fn get_packages(state: State<'_, AppState>) -> packages::PackageList {
 
 #[tauri::command]
 pub fn refresh_packages(state: State<'_, AppState>) -> packages::PackageList {
+    if demo::is_enabled() {
+        return demo::mock_packages();
+    }
+
     let mut cache = state.package_cache.lock().unwrap();
     cache.invalidate();
     let start = std::time::Instant::now();
