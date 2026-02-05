@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Houston</title>
     <style>
-      /* Prevent white flash on load */
+      /* Prevent white flash on load - uses CSS var with dark fallback */
       html, body {
-        background: oklch(0.145 0.015 260);
+        background: var(--color-background, oklch(0.145 0.015 260));
         margin: 0;
         padding: 0;
       }
@@ -21,7 +21,7 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-        background: oklch(0.145 0.015 260);
+        background: var(--color-background, oklch(0.145 0.015 260));
         animation: splashOut 0.4s ease-in 2.4s forwards;
       }
 

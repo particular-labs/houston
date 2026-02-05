@@ -15,6 +15,10 @@ pub fn get_languages(state: State<'_, AppState>) -> Vec<languages::LanguageInfo>
         .language_stats
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(langs.clone());
+    drop(cache);
+    // Record scan history
+    let db = state.db.lock().unwrap();
+    let _ = db.record_scan("languages", &langs);
     langs
 }
 
@@ -28,5 +32,9 @@ pub fn refresh_languages(state: State<'_, AppState>) -> Vec<languages::LanguageI
         .language_stats
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(langs.clone());
+    drop(cache);
+    // Record scan history
+    let db = state.db.lock().unwrap();
+    let _ = db.record_scan("languages", &langs);
     langs
 }

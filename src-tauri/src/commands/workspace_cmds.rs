@@ -11,7 +11,10 @@ pub fn get_workspace_paths(state: State<'_, AppState>) -> Vec<String> {
 pub fn add_workspace(state: State<'_, AppState>, path: String) -> Vec<String> {
     let mut paths = state.workspace_paths.lock().unwrap();
     if !paths.contains(&path) {
-        paths.push(path);
+        paths.push(path.clone());
+        // Persist to database
+        let db = state.db.lock().unwrap();
+        let _ = db.add_workspace(&path);
     }
     paths.clone()
 }
@@ -22,6 +25,10 @@ pub fn remove_workspace(state: State<'_, AppState>, path: String) -> Vec<String>
     paths.retain(|p| p != &path);
     let result = paths.clone();
     drop(paths);
+    // Persist removal to database
+    let db = state.db.lock().unwrap();
+    let _ = db.remove_workspace(&path);
+    drop(db);
     // Invalidate project and git caches so stale data doesn't linger
     state.project_cache.lock().unwrap().invalidate();
     state.git_cache.lock().unwrap().invalidate();

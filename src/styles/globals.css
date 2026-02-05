@@ -57,7 +57,8 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-foreground antialiased;
+    background-color: var(--color-background) !important;
     font-family: var(--font-sans);
     overflow: hidden;
   }
@@ -96,4 +97,68 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: oklch(0.4 0.015 260);
   }
+
+  /* Sidebar nav item hover states */
+  .sidebar-nav-item:not(.active):hover {
+    background-color: color-mix(
+      in oklch,
+      var(--color-sidebar-accent) 50%,
+      transparent
+    ) !important;
+    color: var(--color-sidebar-foreground) !important;
+  }
+
+  /* Sidebar settings button hover */
+  .sidebar-settings-btn:hover {
+    color: var(--color-foreground) !important;
+  }
+}
+
+/* Light theme overrides - placed at end to ensure highest specificity */
+html[data-theme="light"] {
+  --color-background: oklch(0.98 0.005 260) !important;
+  --color-foreground: oklch(0.15 0.02 260) !important;
+  --color-card: oklch(0.99 0.003 260) !important;
+  --color-card-foreground: oklch(0.15 0.02 260) !important;
+  --color-popover: oklch(0.99 0.003 260) !important;
+  --color-popover-foreground: oklch(0.15 0.02 260) !important;
+  --color-primary: oklch(0.55 0.18 250) !important;
+  --color-primary-foreground: oklch(0.98 0.005 260) !important;
+  --color-secondary: oklch(0.94 0.01 260) !important;
+  --color-secondary-foreground: oklch(0.2 0.02 260) !important;
+  --color-muted: oklch(0.95 0.008 260) !important;
+  --color-muted-foreground: oklch(0.45 0.02 260) !important;
+  --color-accent: oklch(0.92 0.015 260) !important;
+  --color-accent-foreground: oklch(0.2 0.02 260) !important;
+  --color-destructive: oklch(0.55 0.22 25) !important;
+  --color-destructive-foreground: oklch(0.98 0.005 260) !important;
+  --color-border: oklch(0.88 0.01 260) !important;
+  --color-input: oklch(0.88 0.01 260) !important;
+  --color-ring: oklch(0.55 0.18 250) !important;
+
+  --color-success: oklch(0.55 0.2 155) !important;
+  --color-success-foreground: oklch(0.98 0.005 155) !important;
+  --color-warning: oklch(0.7 0.18 85) !important;
+  --color-warning-foreground: oklch(0.2 0.02 85) !important;
+  --color-info: oklch(0.55 0.18 250) !important;
+  --color-info-foreground: oklch(0.98 0.005 250) !important;
+
+  --color-sidebar: oklch(0.96 0.008 260) !important;
+  --color-sidebar-foreground: oklch(0.2 0.02 260) !important;
+  --color-sidebar-accent: oklch(0.92 0.012 260) !important;
+  --color-sidebar-accent-foreground: oklch(0.15 0.02 260) !important;
+  --color-sidebar-border: oklch(0.88 0.01 260) !important;
+  --color-sidebar-ring: oklch(0.55 0.18 250) !important;
+}
+
+html[data-theme="light"] .scrollbar-thin {
+  scrollbar-color: oklch(0.75 0.01 260) transparent !important;
+}
+
+html[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: oklch(0.75 0.01 260) !important;
+}
+
+html[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.65 0.01 260) !important;
 }

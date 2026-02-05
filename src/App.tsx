@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigationStore, type Section } from "@/stores/navigation";
-import { useHydrateWorkspaces } from "@/hooks/use-workspaces";
+import { useTheme } from "@/hooks/use-theme";
+import { useSetting } from "@/hooks/use-settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,28 +53,59 @@ function KeyboardShortcuts() {
   return null;
 }
 
-function HydrateWorkspaces() {
-  useHydrateWorkspaces();
+function StartupSection() {
+  const { data: startupSection, isLoading } = useSetting("startup_section");
+  const setSection = useNavigationStore((s) => s.setActiveSection);
+  const navigated = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || navigated.current) return;
+    navigated.current = true;
+
+    const section = startupSection as Section | undefined;
+    if (section && section !== "dashboard") {
+      setSection(section);
+    }
+  }, [startupSection, isLoading, setSection]);
+
   return null;
+}
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+  return (
+    <>
+      {children}
+      <Toaster
+        position="bottom-right"
+        theme={theme}
+        toastOptions={{
+          style:
+            theme === "dark"
+              ? {
+                  background: "oklch(0.17 0.015 260)",
+                  border: "1px solid oklch(0.25 0.015 260)",
+                  color: "oklch(0.95 0.01 260)",
+                }
+              : {
+                  background: "oklch(0.98 0.005 260)",
+                  border: "1px solid oklch(0.88 0.01 260)",
+                  color: "oklch(0.15 0.02 260)",
+                },
+        }}
+      />
+    </>
+  );
 }
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <HydrateWorkspaces />
-      <KeyboardShortcuts />
-      <AppShell />
-      <Toaster
-        position="bottom-right"
-        theme="dark"
-        toastOptions={{
-          style: {
-            background: "oklch(0.17 0.015 260)",
-            border: "1px solid oklch(0.25 0.015 260)",
-            color: "oklch(0.95 0.01 260)",
-          },
-        }}
-      />
+      <ThemeProvider>
+        <StartupSection />
+        <KeyboardShortcuts />
+        <AppShell />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

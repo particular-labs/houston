@@ -1,4 +1,6 @@
+use crate::state::AppState;
 use std::process::Command;
+use tauri::State;
 
 #[tauri::command]
 pub fn open_in_terminal(path: String) -> Result<(), String> {
@@ -42,9 +44,25 @@ pub fn open_in_terminal(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn open_in_editor(path: String) -> Result<(), String> {
-    // Try VS Code first, then Cursor, then fall back
-    let editors = ["code", "cursor", "zed", "subl"];
+pub fn open_in_editor(state: State<'_, AppState>, path: String) -> Result<(), String> {
+    // Get preferred editor from settings
+    let preferred_editor = {
+        let db = state.db.lock().unwrap();
+        db.get_setting("default_editor").ok().flatten()
+    };
+
+    // If a specific editor is configured (not "auto"), try it first
+    if let Some(ref editor) = preferred_editor {
+        if editor != "auto" {
+            if Command::new(editor).arg(&path).spawn().is_ok() {
+                return Ok(());
+            }
+            // Fall through to auto-detection if preferred editor fails
+        }
+    }
+
+    // Auto-detection: Try common editors in order
+    let editors = ["code", "cursor", "zed", "subl", "nvim", "vim", "emacs"];
 
     for editor in &editors {
         if Command::new(editor).arg(&path).spawn().is_ok() {

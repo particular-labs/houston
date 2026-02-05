@@ -1,4 +1,20 @@
-import { Settings, Trash2, Clock, HardDrive, Hash, Download, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import {
+  Settings,
+  Trash2,
+  Clock,
+  HardDrive,
+  Hash,
+  Download,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Sun,
+  Moon,
+  Database,
+  Palette,
+  Cog,
+  Timer,
+} from "lucide-react";
 import { useAppStats } from "@/hooks/use-app-stats";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CardSkeleton } from "@/components/shared/skeleton";
@@ -7,6 +23,9 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
+import { appDataDir } from "@tauri-apps/api/path";
+import { useQuery } from "@tanstack/react-query";
 
 function formatUptime(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -29,7 +48,263 @@ function hitRate(hits: number, misses: number): string {
   return `${((hits / total) * 100).toFixed(0)}%`;
 }
 
-type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
+type UpdateStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "downloading"
+  | "up-to-date"
+  | "error";
+
+const EDITOR_OPTIONS = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "code", label: "VS Code" },
+  { value: "cursor", label: "Cursor" },
+  { value: "zed", label: "Zed" },
+  { value: "subl", label: "Sublime Text" },
+  { value: "nvim", label: "Neovim" },
+  { value: "vim", label: "Vim" },
+  { value: "emacs", label: "Emacs" },
+];
+
+const STARTUP_SECTIONS = [
+  { value: "dashboard", label: "Dashboard" },
+  { value: "system", label: "System" },
+  { value: "path", label: "PATH" },
+  { value: "languages", label: "Languages" },
+  { value: "environment", label: "Environment" },
+  { value: "workspaces", label: "Workspaces" },
+  { value: "packages", label: "Packages" },
+  { value: "tools", label: "AI Tools" },
+  { value: "settings", label: "Settings" },
+];
+
+const TTL_SETTINGS = [
+  { key: "ttl_system", label: "System", default: 300 },
+  { key: "ttl_path", label: "PATH", default: 60 },
+  { key: "ttl_languages", label: "Languages", default: 120 },
+  { key: "ttl_env", label: "Environment", default: 60 },
+  { key: "ttl_projects", label: "Projects", default: 60 },
+  { key: "ttl_git", label: "Git", default: 30 },
+  { key: "ttl_packages", label: "Packages", default: 300 },
+  { key: "ttl_claude", label: "Claude", default: 300 },
+  { key: "ttl_diagnostics", label: "Diagnostics", default: 120 },
+  { key: "ttl_ai_tools", label: "AI Tools", default: 120 },
+];
+
+function AppearanceCard() {
+  const { data: settings } = useSettings();
+  const setSetting = useSetSetting();
+  const theme = getSettingValue(settings, "theme", "dark");
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <Palette className="h-4 w-4 text-muted-foreground" />
+        Appearance
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setSetting.mutate({ key: "theme", value: "dark" })}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+            theme === "dark"
+              ? "border-primary bg-primary/10 text-foreground"
+              : "border-border bg-background text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <Moon className="h-4 w-4" />
+          Dark
+        </button>
+        <button
+          onClick={() => setSetting.mutate({ key: "theme", value: "light" })}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+            theme === "light"
+              ? "border-primary bg-primary/10 text-foreground"
+              : "border-border bg-background text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <Sun className="h-4 w-4" />
+          Light
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GeneralCard() {
+  const { data: settings } = useSettings();
+  const setSetting = useSetSetting();
+
+  const defaultEditor = getSettingValue(settings, "default_editor", "auto");
+  const startupSection = getSettingValue(settings, "startup_section", "dashboard");
+  const autoScan = getSettingValue(settings, "auto_scan_on_startup", "true");
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <Cog className="h-4 w-4 text-muted-foreground" />
+        General
+      </div>
+      <div className="space-y-3">
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            Default Editor
+          </label>
+          <select
+            value={defaultEditor}
+            onChange={(e) =>
+              setSetting.mutate({ key: "default_editor", value: e.target.value })
+            }
+            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+          >
+            {EDITOR_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            Startup Section
+          </label>
+          <select
+            value={startupSection}
+            onChange={(e) =>
+              setSetting.mutate({ key: "startup_section", value: e.target.value })
+            }
+            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
+          >
+            {STARTUP_SECTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-muted-foreground">
+            Auto-scan on startup
+          </label>
+          <button
+            onClick={() =>
+              setSetting.mutate({
+                key: "auto_scan_on_startup",
+                value: autoScan === "true" ? "false" : "true",
+              })
+            }
+            className={cn(
+              "relative h-5 w-9 rounded-full transition-colors",
+              autoScan === "true" ? "bg-primary" : "bg-muted"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
+                autoScan === "true" ? "left-[18px]" : "left-0.5"
+              )}
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CacheConfigCard() {
+  const { data: settings } = useSettings();
+  const setSetting = useSetSetting();
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const handleSave = (key: string) => {
+    const num = parseInt(editValue, 10);
+    if (!isNaN(num) && num > 0) {
+      setSetting.mutate({ key, value: String(num) });
+    }
+    setEditingKey(null);
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <Timer className="h-4 w-4 text-muted-foreground" />
+        Cache TTL (seconds)
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {TTL_SETTINGS.map(({ key, label, default: def }) => {
+          const value = getSettingValue(settings, key, String(def));
+          const isEditing = editingKey === key;
+
+          return (
+            <div key={key} className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">{label}</span>
+              {isEditing ? (
+                <input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => handleSave(key)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSave(key);
+                    if (e.key === "Escape") setEditingKey(null);
+                  }}
+                  autoFocus
+                  className="w-16 rounded border border-primary bg-background px-1.5 py-0.5 text-right font-mono text-xs focus:outline-none"
+                />
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingKey(key);
+                    setEditValue(value);
+                  }}
+                  className="rounded px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-accent"
+                >
+                  {value}s
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DatabaseCard() {
+  const { data: dbPath } = useQuery({
+    queryKey: ["db-path"],
+    queryFn: async () => {
+      const dir = await appDataDir();
+      return `${dir}houston.db`;
+    },
+  });
+  const { data: settings } = useSettings();
+  const historyLimit = getSettingValue(settings, "scan_history_limit", "50");
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <Database className="h-4 w-4 text-muted-foreground" />
+        Database
+      </div>
+      <div className="space-y-2 text-xs">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-muted-foreground">Location</span>
+          <span className="truncate font-mono text-foreground" title={dbPath}>
+            {dbPath || "Loading..."}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">History Limit</span>
+          <span className="font-mono text-foreground">{historyLimit} entries/scanner</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsSection() {
   const { data: stats, isLoading } = useAppStats();
@@ -78,9 +353,11 @@ export function SettingsSection() {
       <div className="space-y-6">
         <SectionHeader
           title="Settings"
-          description="App performance and cache management"
+          description="App preferences and performance"
         />
         <div className="grid grid-cols-2 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
         </div>
@@ -92,8 +369,16 @@ export function SettingsSection() {
     <div className="space-y-6">
       <SectionHeader
         title="Settings"
-        description="App performance and cache management"
+        description="App preferences and performance"
       />
+
+      {/* Preferences */}
+      <div className="grid grid-cols-2 gap-4">
+        <AppearanceCard />
+        <GeneralCard />
+        <CacheConfigCard />
+        <DatabaseCard />
+      </div>
 
       {/* App Info */}
       <div className="grid grid-cols-3 gap-4">
@@ -136,9 +421,12 @@ export function SettingsSection() {
               {updateStatus === "idle" && "Check for new versions of Houston."}
               {updateStatus === "checking" && "Checking for updates..."}
               {updateStatus === "up-to-date" && "Houston is up to date."}
-              {updateStatus === "available" && `Version ${updateVersion} is available.`}
-              {updateStatus === "downloading" && "Downloading and installing update..."}
-              {updateStatus === "error" && (updateError || "Failed to check for updates.")}
+              {updateStatus === "available" &&
+                `Version ${updateVersion} is available.`}
+              {updateStatus === "downloading" &&
+                "Downloading and installing update..."}
+              {updateStatus === "error" &&
+                (updateError || "Failed to check for updates.")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -160,7 +448,9 @@ export function SettingsSection() {
             ) : (
               <button
                 onClick={handleCheckUpdate}
-                disabled={updateStatus === "checking" || updateStatus === "downloading"}
+                disabled={
+                  updateStatus === "checking" || updateStatus === "downloading"
+                }
                 className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
               >
                 Check for Updates
@@ -190,9 +480,7 @@ export function SettingsSection() {
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-4 py-2 font-medium">Scanner</th>
-                <th className="px-4 py-2 font-medium text-right">
-                  Last Scan
-                </th>
+                <th className="px-4 py-2 font-medium text-right">Last Scan</th>
                 <th className="px-4 py-2 font-medium text-right">Hits</th>
                 <th className="px-4 py-2 font-medium text-right">Misses</th>
                 <th className="px-4 py-2 font-medium text-right">Hit Rate</th>
@@ -230,7 +518,7 @@ export function SettingsSection() {
                         "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium",
                         scanner.is_warm
                           ? "bg-emerald-500/10 text-emerald-400"
-                          : "bg-zinc-500/10 text-zinc-400",
+                          : "bg-zinc-500/10 text-zinc-400"
                       )}
                     >
                       {scanner.is_warm ? "warm" : "cold"}

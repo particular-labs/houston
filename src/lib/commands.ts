@@ -160,6 +160,32 @@ export interface FixResult {
   output: string | null;
 }
 
+// Settings types
+export interface SettingPair {
+  key: string;
+  value: string;
+}
+
+// Scan history types
+export interface ScanHistoryRow {
+  id: number;
+  scanner: string;
+  data_json: string;
+  scanned_at: string;
+}
+
+// Issue types
+export interface IssueRow {
+  diagnostic_id: string;
+  category: string;
+  severity: string;
+  title: string;
+  description: string;
+  status: "open" | "dismissed" | "resolved";
+  first_seen: string;
+  last_seen: string;
+}
+
 // Stats types
 export interface ScannerStatsSnapshot {
   name: string;
@@ -238,4 +264,24 @@ export const commands = {
 
   // Stats
   getAppStats: () => invoke<AppStatsSnapshot>("get_app_stats"),
+
+  // Settings
+  getSettings: () => invoke<SettingPair[]>("get_settings"),
+  getSetting: (key: string) => invoke<string | null>("get_setting", { key }),
+  setSetting: (key: string, value: string) =>
+    invoke<void>("set_setting", { key, value }),
+
+  // Scan History
+  getScanHistory: (scanner: string, limit?: number) =>
+    invoke<ScanHistoryRow[]>("get_scan_history", { scanner, limit }),
+  getLatestScan: (scanner: string) =>
+    invoke<ScanHistoryRow | null>("get_latest_scan", { scanner }),
+
+  // Issues
+  getIssues: (status?: string) =>
+    invoke<IssueRow[]>("get_issues", { status }),
+  dismissIssue: (diagnosticId: string) =>
+    invoke<void>("dismiss_issue", { diagnosticId }),
+  updateIssueStatus: (diagnosticId: string, status: string) =>
+    invoke<void>("update_issue_status", { diagnosticId, status }),
 };

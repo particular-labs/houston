@@ -1,10 +1,12 @@
 mod commands;
+mod db;
 mod scanners;
 mod state;
 
 use commands::{
-    action_cmds, ai_tools_cmds, claude_cmds, diagnostics_cmds, env_cmds, language_cmds,
-    package_cmds, stats_cmds, system_cmds, workspace_cmds,
+    action_cmds, ai_tools_cmds, claude_cmds, diagnostics_cmds, env_cmds, history_cmds,
+    issue_cmds, language_cmds, package_cmds, settings_cmds, stats_cmds, system_cmds,
+    workspace_cmds,
 };
 use state::AppState;
 
@@ -16,7 +18,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_log::Builder::new().build())
-        .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             // System
             system_cmds::get_system_info,
@@ -58,12 +59,32 @@ pub fn run() {
             ai_tools_cmds::get_tool_mcp_servers,
             // Stats
             stats_cmds::get_app_stats,
+            // Settings
+            settings_cmds::get_settings,
+            settings_cmds::get_setting,
+            settings_cmds::set_setting,
+            // History
+            history_cmds::get_scan_history,
+            history_cmds::get_latest_scan,
+            // Issues
+            issue_cmds::get_issues,
+            issue_cmds::dismiss_issue,
+            issue_cmds::update_issue_status,
         ])
         .setup(|app| {
+            use tauri::Manager;
+
+            // Initialize database
+            let db_path = app.path().app_data_dir()?.join("houston.db");
+            let _ = db::Database::backup(&db_path); // Best effort backup
+            let database = db::Database::open(&db_path)
+                .map_err(|e| anyhow::anyhow!("Database initialization failed: {}", e))?;
+
+            // Create AppState with database and register it
+            app.manage(AppState::new(database));
             // Apply macOS vibrancy
             #[cfg(target_os = "macos")]
             {
-                use tauri::Manager;
                 if let Some(window) = app.get_webview_window("main") {
                     use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
                     let _ = apply_vibrancy(&window, NSVisualEffectMaterial::Sidebar, None, None);
@@ -72,7 +93,6 @@ pub fn run() {
 
             // Pre-warm caches in parallel — one thread per scanner
             {
-                use tauri::Manager;
                 let handle = app.handle().clone();
 
                 let h = handle.clone();

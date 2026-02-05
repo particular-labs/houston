@@ -49,6 +49,10 @@ impl<T: Clone> ScanCache<T> {
     pub fn ttl_secs(&self) -> u64 {
         self.ttl.as_secs()
     }
+
+    pub fn set_ttl(&mut self, secs: u64) {
+        self.ttl = Duration::from_secs(secs);
+    }
 }
 
 /// Lock-free stats tracking for a single scanner
@@ -101,6 +105,7 @@ pub struct AppStatsSnapshot {
     pub memory_bytes: u64,
 }
 
+use crate::db::Database;
 use crate::scanners::{
     ai_tools::AiToolsReport, claude::ClaudeConfig, diagnostics::DiagnosticReport,
     environment::EnvVarInfo, git::GitStatus, languages::LanguageInfo, packages::PackageList,
@@ -108,6 +113,7 @@ use crate::scanners::{
 };
 
 pub struct AppState {
+    pub db: Mutex<Database>,
     pub system_cache: Mutex<ScanCache<SystemInfo>>,
     pub path_cache: Mutex<ScanCache<Vec<PathEntry>>>,
     pub language_cache: Mutex<ScanCache<Vec<LanguageInfo>>>,
@@ -135,19 +141,44 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(db: Database) -> Self {
+        // Helper to read TTL from DB with fallback
+        let get_ttl = |key: &str, default: u64| -> u64 {
+            db.get_setting(key)
+                .ok()
+                .flatten()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(default)
+        };
+
+        // Read TTL overrides from database
+        let ttl_system = get_ttl("ttl_system", 300);
+        let ttl_path = get_ttl("ttl_path", 60);
+        let ttl_languages = get_ttl("ttl_languages", 120);
+        let ttl_env = get_ttl("ttl_env", 60);
+        let ttl_projects = get_ttl("ttl_projects", 60);
+        let ttl_git = get_ttl("ttl_git", 30);
+        let ttl_packages = get_ttl("ttl_packages", 300);
+        let ttl_claude = get_ttl("ttl_claude", 300);
+        let ttl_diagnostics = get_ttl("ttl_diagnostics", 120);
+        let ttl_ai_tools = get_ttl("ttl_ai_tools", 120);
+
+        // Hydrate workspace paths from database
+        let workspace_paths = db.get_workspaces().unwrap_or_default();
+
         Self {
-            system_cache: Mutex::new(ScanCache::new(300)),
-            path_cache: Mutex::new(ScanCache::new(60)),
-            language_cache: Mutex::new(ScanCache::new(120)),
-            env_cache: Mutex::new(ScanCache::new(60)),
-            workspace_paths: Mutex::new(Vec::new()),
-            project_cache: Mutex::new(ScanCache::new(60)),
-            git_cache: Mutex::new(ScanCache::new(30)),
-            package_cache: Mutex::new(ScanCache::new(300)),
-            claude_cache: Mutex::new(ScanCache::new(300)),
-            diagnostics_cache: Mutex::new(ScanCache::new(120)),
-            ai_tools_cache: Mutex::new(ScanCache::new(120)),
+            db: Mutex::new(db),
+            system_cache: Mutex::new(ScanCache::new(ttl_system)),
+            path_cache: Mutex::new(ScanCache::new(ttl_path)),
+            language_cache: Mutex::new(ScanCache::new(ttl_languages)),
+            env_cache: Mutex::new(ScanCache::new(ttl_env)),
+            workspace_paths: Mutex::new(workspace_paths),
+            project_cache: Mutex::new(ScanCache::new(ttl_projects)),
+            git_cache: Mutex::new(ScanCache::new(ttl_git)),
+            package_cache: Mutex::new(ScanCache::new(ttl_packages)),
+            claude_cache: Mutex::new(ScanCache::new(ttl_claude)),
+            diagnostics_cache: Mutex::new(ScanCache::new(ttl_diagnostics)),
+            ai_tools_cache: Mutex::new(ScanCache::new(ttl_ai_tools)),
             system_stats: ScanStats::new(),
             path_stats: ScanStats::new(),
             language_stats: ScanStats::new(),

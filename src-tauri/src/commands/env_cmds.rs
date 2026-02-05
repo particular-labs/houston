@@ -15,6 +15,10 @@ pub fn get_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarInfo> 
         .env_stats
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(vars.clone());
+    drop(cache);
+    // Record scan history
+    let db = state.db.lock().unwrap();
+    let _ = db.record_scan("environment", &vars);
     vars
 }
 
@@ -28,5 +32,9 @@ pub fn refresh_env_vars(state: State<'_, AppState>) -> Vec<environment::EnvVarIn
         .env_stats
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(vars.clone());
+    drop(cache);
+    // Record scan history
+    let db = state.db.lock().unwrap();
+    let _ = db.record_scan("environment", &vars);
     vars
 }

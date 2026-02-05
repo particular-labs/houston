@@ -15,6 +15,10 @@ pub fn get_claude_config(state: State<'_, AppState>) -> claude::ClaudeConfig {
         .claude_stats
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(config.clone());
+    drop(cache);
+    // Record scan history
+    let db = state.db.lock().unwrap();
+    let _ = db.record_scan("claude", &config);
     config
 }
 
@@ -28,5 +32,9 @@ pub fn refresh_claude_config(state: State<'_, AppState>) -> claude::ClaudeConfig
         .claude_stats
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(config.clone());
+    drop(cache);
+    // Record scan history
+    let db = state.db.lock().unwrap();
+    let _ = db.record_scan("claude", &config);
     config
 }
