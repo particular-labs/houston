@@ -351,29 +351,69 @@ fn tool_registry() -> Vec<ToolSpec> {
     ]
 }
 
-/// Check if a macOS .app bundle exists in /Applications
+/// Check if an app is installed (platform-specific)
 fn check_app_installed(bundle: &str) -> Option<String> {
-    let path = format!("/Applications/{}", bundle);
-    if std::path::Path::new(&path).exists() {
-        Some(path)
-    } else {
-        None
-    }
-}
-
-/// Read CFBundleShortVersionString from an app's Info.plist via `defaults read`
-fn get_app_version(app_path: &str) -> Option<String> {
-    let plist_path = format!("{}/Contents/Info", app_path);
-    let output = Command::new("defaults")
-        .args(["read", &plist_path, "CFBundleShortVersionString"])
-        .output()
-        .ok()?;
-    if output.status.success() {
-        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !version.is_empty() {
-            return Some(version);
+    #[cfg(target_os = "macos")]
+    {
+        let path = format!("/Applications/{}", bundle);
+        if std::path::Path::new(&path).exists() {
+            return Some(path);
         }
     }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Check common Windows install locations
+        let name = bundle.trim_end_matches(".app");
+        let locations = [
+            format!("C:\\Program Files\\{}", name),
+            format!("C:\\Program Files (x86)\\{}", name),
+        ];
+        // Also check user's local appdata
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            let user_path = format!("{}\\Programs\\{}", local_app_data, name);
+            if std::path::Path::new(&user_path).exists() {
+                return Some(user_path);
+            }
+        }
+        for loc in &locations {
+            if std::path::Path::new(loc).exists() {
+                return Some(loc.clone());
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux, apps are typically just binaries; skip .app bundle check
+        let _ = bundle;
+    }
+
+    None
+}
+
+/// Read app version (macOS: Info.plist, other platforms: None)
+fn get_app_version(app_path: &str) -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        let plist_path = format!("{}/Contents/Info", app_path);
+        let output = Command::new("defaults")
+            .args(["read", &plist_path, "CFBundleShortVersionString"])
+            .output()
+            .ok()?;
+        if output.status.success() {
+            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !version.is_empty() {
+                return Some(version);
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app_path;
+    }
+
     None
 }
 
@@ -475,6 +515,9 @@ struct BrewOutdated {
 
 fn fetch_brew_outdated() -> HashMap<String, BrewOutdated> {
     let mut map = HashMap::new();
+    if cfg!(target_os = "windows") {
+        return map;
+    }
     let output = Command::new("brew").args(["outdated", "--json"]).output();
     if let Ok(out) = output {
         if out.status.success() {
@@ -563,9 +606,15 @@ fn which_binary(binary: &str) -> Option<String> {
     if binary.is_empty() {
         return None;
     }
-    let output = Command::new("which").arg(binary).output().ok()?;
+    #[cfg(unix)]
+    let cmd = "which";
+    #[cfg(windows)]
+    let cmd = "where.exe";
+
+    let output = Command::new(cmd).arg(binary).output().ok()?;
     if output.status.success() {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let out = String::from_utf8_lossy(&output.stdout);
+        let path = out.lines().next()?.trim().to_string();
         if !path.is_empty() {
             return Some(path);
         }
@@ -650,13 +699,25 @@ struct McpConfigSpec {
 
 fn get_mcp_config_spec(tool_name: &str) -> Option<McpConfigSpec> {
     let home = dirs::home_dir()?;
+
+    #[cfg(target_os = "macos")]
+    let claude_desktop_path = "Library/Application Support/Claude/claude_desktop_config.json";
+    #[cfg(target_os = "windows")]
+    let claude_desktop_path = "AppData/Roaming/Claude/claude_desktop_config.json";
+    #[cfg(target_os = "linux")]
+    let claude_desktop_path = ".config/Claude/claude_desktop_config.json";
+
+    #[cfg(target_os = "macos")]
+    let cursor_config_path = ".cursor/mcp.json";
+    #[cfg(target_os = "windows")]
+    let cursor_config_path = ".cursor/mcp.json";
+    #[cfg(target_os = "linux")]
+    let cursor_config_path = ".cursor/mcp.json";
+
     let (relative_path, json_key) = match tool_name {
         "Claude Code" => (".claude/settings.json", "mcpServers"),
-        "Claude Desktop" => (
-            "Library/Application Support/Claude/claude_desktop_config.json",
-            "mcpServers",
-        ),
-        "Cursor" => (".cursor/mcp.json", "mcpServers"),
+        "Claude Desktop" => (claude_desktop_path, "mcpServers"),
+        "Cursor" => (cursor_config_path, "mcpServers"),
         "Windsurf" => (".codeium/windsurf/mcp_config.json", "mcpServers"),
         "Zed" => (".config/zed/settings.json", "context_servers"),
         "VS Code" => (".vscode/mcp.json", "servers"),
@@ -722,7 +783,9 @@ pub fn scan_mcp_servers(tool_name: &str) -> Vec<crate::scanners::claude::McpServ
 
 pub fn scan() -> AiToolsReport {
     let registry = tool_registry();
-    let home = std::env::var("HOME").unwrap_or_default();
+    let home = dirs::home_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
 
     // Phase 1: Run batch commands in parallel
     let npm_handle = std::thread::spawn(fetch_npm_outdated);

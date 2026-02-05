@@ -30,6 +30,14 @@ pub fn open_in_terminal(path: String) -> Result<(), String> {
         }
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "cmd", "/K", &format!("cd /d {}", path)])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
     Ok(())
 }
 
@@ -44,6 +52,17 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
         }
     }
 
+    // Windows: also try notepad++ and native notepad
+    #[cfg(target_os = "windows")]
+    {
+        let win_editors = ["notepad++", "notepad"];
+        for editor in &win_editors {
+            if Command::new(editor).arg(&path).spawn().is_ok() {
+                return Ok(());
+            }
+        }
+    }
+
     // macOS fallback: open with default app
     #[cfg(target_os = "macos")]
     {
@@ -54,7 +73,17 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
         return Ok(());
     }
 
-    #[cfg(not(target_os = "macos"))]
+    // Linux fallback: xdg-open
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     Err("No editor found".to_string())
 }
 

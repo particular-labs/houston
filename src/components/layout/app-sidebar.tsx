@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Monitor,
@@ -9,6 +10,7 @@ import {
   Wrench,
   Settings,
 } from "lucide-react";
+import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "@/lib/utils";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 
@@ -56,6 +58,11 @@ const navGroups: NavGroup[] = [
 
 export function AppSidebar() {
   const { activeSection, setActiveSection } = useNavigationStore();
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
 
   return (
     <aside className="flex h-full w-[240px] flex-col border-r border-sidebar-border bg-sidebar">
@@ -109,7 +116,7 @@ export function AppSidebar() {
         >
           <Settings className="h-4 w-4" />
         </button>
-        <span className="text-[10px] text-muted-foreground">v0.1.0</span>
+        {version && <span className="text-[10px] text-muted-foreground">v{version}</span>}
       </div>
     </aside>
   );

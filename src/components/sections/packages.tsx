@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Package, Box } from "lucide-react";
+import { Package } from "lucide-react";
 import { useGlobalPackages } from "@/hooks/use-global-packages";
 import { SectionHeader } from "@/components/shared/section-header";
 import { SearchInput } from "@/components/shared/search-input";
@@ -10,13 +10,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 import type { PackageInfo } from "@/lib/commands";
 
-type Tab = "npm" | "brew" | "pip" | "cargo";
+type Tab = "npm" | "brew" | "pip" | "cargo" | "scoop" | "chocolatey";
 
-const tabs: { id: Tab; label: string }[] = [
+const allTabs: { id: Tab; label: string }[] = [
   { id: "npm", label: "npm global" },
   { id: "brew", label: "Homebrew" },
   { id: "pip", label: "pip" },
   { id: "cargo", label: "Cargo" },
+  { id: "scoop", label: "Scoop" },
+  { id: "chocolatey", label: "Chocolatey" },
 ];
 
 function PackageTable({
@@ -34,16 +36,6 @@ function PackageTable({
         p.version.toLowerCase().includes(search.toLowerCase()),
     );
   }, [packages, search]);
-
-  if (packages.length === 0) {
-    return (
-      <EmptyState
-        icon={Box}
-        title="No packages found"
-        description="This package manager doesn't have any globally installed packages, or it's not installed"
-      />
-    );
-  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border">
@@ -90,7 +82,7 @@ function PackageTable({
 export function PackagesSection() {
   const { data: packages, isLoading, isFetching } = useGlobalPackages();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<Tab>("npm");
+  const [activeTab, setActiveTab] = useState<Tab | null>(null);
   const [search, setSearch] = useState("");
 
   const tabData: Record<Tab, PackageInfo[]> = {
@@ -98,9 +90,19 @@ export function PackagesSection() {
     brew: packages?.brew ?? [],
     pip: packages?.pip ?? [],
     cargo: packages?.cargo ?? [],
+    scoop: packages?.scoop ?? [],
+    chocolatey: packages?.chocolatey ?? [],
   };
 
-  const currentPackages = tabData[activeTab];
+  // Only show tabs for package managers that have packages
+  const tabs = allTabs.filter((tab) => tabData[tab.id].length > 0);
+
+  // Default to first available tab
+  const resolvedTab = activeTab && tabs.some((t) => t.id === activeTab)
+    ? activeTab
+    : tabs[0]?.id ?? null;
+
+  const currentPackages = resolvedTab ? tabData[resolvedTab] : [];
 
   return (
     <div className="space-y-4">
@@ -113,42 +115,50 @@ export function PackagesSection() {
 
       <DiagnosticsBanner categories={["packages"]} />
 
-      {/* Tabs */}
-      <div className="flex items-center gap-3">
-        <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-0.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setSearch("");
-              }}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === tab.id
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-              <span className="ml-1.5 text-[10px] text-muted-foreground">
-                ({tabData[tab.id].length})
-              </span>
-            </button>
-          ))}
-        </div>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={`Search ${tabs.find((t) => t.id === activeTab)?.label} packages...`}
-          className="w-64"
-        />
-      </div>
-
       {/* Content */}
       {isLoading ? (
         <TableSkeleton rows={8} />
+      ) : tabs.length === 0 ? (
+        <EmptyState
+          icon={Package}
+          title="No global packages found"
+          description="No package managers with globally installed packages were detected"
+        />
       ) : (
-        <PackageTable packages={currentPackages} search={search} />
+        <>
+          {/* Tabs */}
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-0.5">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setSearch("");
+                  }}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    resolvedTab === tab.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-1.5 text-[10px] text-muted-foreground">
+                    ({tabData[tab.id].length})
+                  </span>
+                </button>
+              ))}
+            </div>
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={`Search ${tabs.find((t) => t.id === resolvedTab)?.label} packages...`}
+              className="w-64"
+            />
+          </div>
+
+          <PackageTable packages={currentPackages} search={search} />
+        </>
       )}
     </div>
   );

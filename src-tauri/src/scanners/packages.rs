@@ -13,6 +13,8 @@ pub struct PackageList {
     pub brew: Vec<PackageInfo>,
     pub pip: Vec<PackageInfo>,
     pub cargo: Vec<PackageInfo>,
+    pub scoop: Vec<PackageInfo>,
+    pub chocolatey: Vec<PackageInfo>,
 }
 
 fn scan_npm_global() -> Vec<PackageInfo> {
@@ -45,6 +47,11 @@ fn scan_npm_global() -> Vec<PackageInfo> {
 }
 
 fn scan_brew() -> Vec<PackageInfo> {
+    // Homebrew exists on macOS and Linux, but not Windows
+    if cfg!(target_os = "windows") {
+        return Vec::new();
+    }
+
     let output = Command::new("brew").args(["list", "--versions"]).output();
 
     match output {
@@ -123,15 +130,95 @@ fn scan_cargo() -> Vec<PackageInfo> {
     }
 }
 
+fn scan_scoop() -> Vec<PackageInfo> {
+    if !cfg!(target_os = "windows") {
+        return Vec::new();
+    }
+
+    // `scoop list` outputs a table; parse lines after the header separator
+    let output = Command::new("scoop").args(["list"]).output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            let mut started = false;
+            stdout
+                .lines()
+                .filter_map(|line| {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("----") || trimmed.starts_with("Name") {
+                        started = true;
+                        return None;
+                    }
+                    if !started || trimmed.is_empty() {
+                        return None;
+                    }
+                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        Some(PackageInfo {
+                            name: parts[0].to_string(),
+                            version: parts[1].to_string(),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn scan_chocolatey() -> Vec<PackageInfo> {
+    if !cfg!(target_os = "windows") {
+        return Vec::new();
+    }
+
+    let output = Command::new("choco")
+        .args(["list", "--local-only"])
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            stdout
+                .lines()
+                .filter_map(|line| {
+                    let trimmed = line.trim();
+                    // Skip summary line like "42 packages installed."
+                    if trimmed.contains("packages installed") || trimmed.is_empty() {
+                        return None;
+                    }
+                    let parts: Vec<&str> = trimmed.splitn(2, ' ').collect();
+                    if parts.len() == 2 {
+                        Some(PackageInfo {
+                            name: parts[0].to_string(),
+                            version: parts[1].trim().to_string(),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        }
+        _ => Vec::new(),
+    }
+}
+
 pub fn scan() -> PackageList {
     let npm = std::thread::spawn(scan_npm_global);
     let brew = std::thread::spawn(scan_brew);
     let pip = std::thread::spawn(scan_pip);
     let cargo = std::thread::spawn(scan_cargo);
+    let scoop = std::thread::spawn(scan_scoop);
+    let choco = std::thread::spawn(scan_chocolatey);
+
     PackageList {
         npm_global: npm.join().unwrap_or_default(),
         brew: brew.join().unwrap_or_default(),
         pip: pip.join().unwrap_or_default(),
         cargo: cargo.join().unwrap_or_default(),
+        scoop: scoop.join().unwrap_or_default(),
+        chocolatey: choco.join().unwrap_or_default(),
     }
 }

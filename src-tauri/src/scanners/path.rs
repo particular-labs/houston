@@ -12,19 +12,34 @@ pub struct PathEntry {
 }
 
 fn categorize_path(path: &str) -> String {
-    if path.contains("homebrew") || path.contains("brew") {
+    let p = path.to_lowercase();
+
+    // Windows-specific categories
+    if cfg!(windows) {
+        if p.contains("\\scoop\\") {
+            return "Scoop".to_string();
+        } else if p.contains("\\chocolatey\\") || p.contains("\\programdata\\chocolatey") {
+            return "Chocolatey".to_string();
+        } else if p.contains("\\program files\\") || p.contains("\\program files (x86)\\") {
+            return "System".to_string();
+        } else if p.contains("\\windows\\") {
+            return "System".to_string();
+        }
+    }
+
+    if p.contains("homebrew") || p.contains("brew") {
         "Homebrew".to_string()
-    } else if path.contains("cargo") || path.contains("rustup") {
+    } else if p.contains("cargo") || p.contains("rustup") {
         "Rust".to_string()
-    } else if path.contains("nvm") || path.contains("fnm") || path.contains("volta") {
+    } else if p.contains("nvm") || p.contains("fnm") || p.contains("volta") {
         "Node.js".to_string()
-    } else if path.contains("pyenv") || path.contains("conda") || path.contains("python") {
+    } else if p.contains("pyenv") || p.contains("conda") || p.contains("python") {
         "Python".to_string()
-    } else if path.contains("rbenv") || path.contains("ruby") || path.contains("gem") {
+    } else if p.contains("rbenv") || p.contains("ruby") || p.contains("gem") {
         "Ruby".to_string()
-    } else if path.contains("goenv") || path.contains("/go/") || path.contains("go/bin") {
+    } else if p.contains("goenv") || p.contains("/go/") || p.contains("go/bin") || p.contains("\\go\\") {
         "Go".to_string()
-    } else if path.contains("java") || path.contains("jdk") || path.contains("jre") {
+    } else if p.contains("java") || p.contains("jdk") || p.contains("jre") {
         "Java".to_string()
     } else if path.contains(".local/bin") {
         "User Local".to_string()
@@ -42,10 +57,11 @@ fn categorize_path(path: &str) -> String {
 
 pub fn scan() -> Vec<PathEntry> {
     let path_var = std::env::var("PATH").unwrap_or_default();
+    let separator = if cfg!(windows) { ';' } else { ':' };
     let mut seen = HashSet::new();
     let mut entries = Vec::new();
 
-    for (index, path_str) in path_var.split(':').enumerate() {
+    for (index, path_str) in path_var.split(separator).enumerate() {
         if path_str.is_empty() {
             continue;
         }

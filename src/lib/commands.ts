@@ -78,6 +78,8 @@ export interface PackageList {
   brew: PackageInfo[];
   pip: PackageInfo[];
   cargo: PackageInfo[];
+  scoop: PackageInfo[];
+  chocolatey: PackageInfo[];
 }
 
 export interface McpServer {

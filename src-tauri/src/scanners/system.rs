@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use sysinfo::System;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemInfo {
@@ -18,53 +19,17 @@ pub struct SystemInfo {
     pub architecture_mismatch: bool,
 }
 
-fn run_cmd(cmd: &str, args: &[&str]) -> String {
-    Command::new(cmd)
-        .args(args)
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_default()
-}
+fn detect_shell() -> (String, String) {
+    #[cfg(unix)]
+    {
+        let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+        let shell = shell_path
+            .split('/')
+            .last()
+            .unwrap_or("unknown")
+            .to_string();
 
-pub fn scan() -> SystemInfo {
-    // Pure-Rust values (no process spawns needed)
-    let os_name = if cfg!(target_os = "macos") {
-        "macOS".to_string()
-    } else if cfg!(target_os = "linux") {
-        "Linux".to_string()
-    } else {
-        "Unknown".to_string()
-    };
-
-    let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
-    let shell = shell_path
-        .split('/')
-        .last()
-        .unwrap_or("unknown")
-        .to_string();
-
-    let username = std::env::var("USER").unwrap_or_else(|_| "unknown".to_string());
-    let home_dir = dirs::home_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "~".to_string());
-    let binary_architecture = std::env::consts::ARCH.to_string();
-
-    // Spawn all shell commands in parallel to avoid sequential spawn overhead
-    let os_version_t = std::thread::spawn(|| {
-        if cfg!(target_os = "macos") {
-            run_cmd("sw_vers", &["-productVersion"])
-        } else {
-            run_cmd("uname", &["-r"])
-        }
-    });
-
-    let kernel_t = std::thread::spawn(|| run_cmd("uname", &["-r"]));
-    let arch_t = std::thread::spawn(|| run_cmd("uname", &["-m"]));
-    let hostname_t = std::thread::spawn(|| run_cmd("hostname", &[]));
-
-    let shell_path_clone = shell_path.clone();
-    let shell_version_t = std::thread::spawn(move || {
-        let output = Command::new(&shell_path_clone)
+        let version = Command::new(&shell_path)
             .arg("--version")
             .output()
             .map(|o| {
@@ -76,49 +41,90 @@ pub fn scan() -> SystemInfo {
                 }
             })
             .unwrap_or_default();
-        // Extract just the first line
-        output.lines().next().unwrap_or("").to_string()
-    });
 
-    let cpu_t = std::thread::spawn(|| {
-        if cfg!(target_os = "macos") {
-            run_cmd("sysctl", &["-n", "machdep.cpu.brand_string"])
+        let version = version.lines().next().unwrap_or("").to_string();
+        (shell, version)
+    }
+
+    #[cfg(windows)]
+    {
+        let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".into());
+        let shell = if comspec.to_lowercase().contains("powershell") {
+            "powershell".to_string()
+        } else if comspec.to_lowercase().contains("pwsh") {
+            "pwsh".to_string()
         } else {
-            "Unknown".to_string()
-        }
-    });
+            "cmd".to_string()
+        };
 
-    let memory_t = std::thread::spawn(|| {
-        if cfg!(target_os = "macos") {
-            let bytes = run_cmd("sysctl", &["-n", "hw.memsize"]);
-            bytes
-                .parse::<u64>()
-                .map(|b| format!("{} GB", b / 1_073_741_824))
-                .unwrap_or_else(|_| "Unknown".to_string())
+        let version = if shell == "cmd" {
+            // cmd doesn't have a clean version output; use ver
+            Command::new("cmd")
+                .args(["/C", "ver"])
+                .output()
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                .unwrap_or_default()
         } else {
-            "Unknown".to_string()
-        }
-    });
+            Command::new("powershell")
+                .args(["-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"])
+                .output()
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                .unwrap_or_default()
+        };
 
-    // Detect real hardware architecture (uname -m lies under Rosetta)
-    let bin_arch = binary_architecture.clone();
-    let arm64_t = std::thread::spawn(move || {
-        if cfg!(target_os = "macos") && bin_arch == "x86_64" {
-            run_cmd("sysctl", &["-n", "hw.optional.arm64"]) == "1"
-        } else {
-            false
-        }
-    });
+        (shell, version)
+    }
+}
 
-    // Collect all results
-    let os_version = os_version_t.join().unwrap_or_else(|_| String::new());
-    let kernel_version = kernel_t.join().unwrap_or_else(|_| String::new());
-    let architecture = arch_t.join().unwrap_or_else(|_| String::new());
-    let hostname = hostname_t.join().unwrap_or_else(|_| String::new());
-    let shell_version = shell_version_t.join().unwrap_or_else(|_| String::new());
-    let cpu_brand = cpu_t.join().unwrap_or_else(|_| String::new());
-    let memory_gb = memory_t.join().unwrap_or_else(|_| String::new());
-    let architecture_mismatch = arm64_t.join().unwrap_or_else(|_| false);
+#[cfg(target_os = "macos")]
+fn detect_rosetta(binary_arch: &str) -> bool {
+    if binary_arch == "x86_64" {
+        Command::new("sysctl")
+            .args(["-n", "hw.optional.arm64"])
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "1")
+            .unwrap_or(false)
+    } else {
+        false
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn detect_rosetta(_binary_arch: &str) -> bool {
+    false
+}
+
+pub fn scan() -> SystemInfo {
+    let os_name = System::name().unwrap_or_else(|| "Unknown".into());
+    let os_version = System::os_version().unwrap_or_else(|| "Unknown".into());
+    let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown".into());
+    let hostname = System::host_name().unwrap_or_else(|| "Unknown".into());
+    let architecture = std::env::consts::ARCH.to_string();
+
+    let mut sys = System::new();
+    sys.refresh_cpu_all();
+    sys.refresh_memory();
+
+    let cpu_brand = sys
+        .cpus()
+        .first()
+        .map(|c| c.brand().to_string())
+        .unwrap_or_else(|| "Unknown".into());
+    let total_mem = sys.total_memory();
+    let memory_gb = format!("{} GB", total_mem / 1_073_741_824);
+
+    let (shell, shell_version) = detect_shell();
+
+    let username = std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .unwrap_or_else(|_| "unknown".into());
+
+    let home_dir = dirs::home_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "~".into());
+
+    let binary_architecture = std::env::consts::ARCH.to_string();
+    let architecture_mismatch = detect_rosetta(&binary_architecture);
 
     SystemInfo {
         os_name,

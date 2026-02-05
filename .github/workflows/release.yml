@@ -7,18 +7,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos:
+  build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            name: Apple Silicon
-          - target: x86_64-apple-darwin
-            name: Intel
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            name: macOS (Apple Silicon)
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            name: macOS (Intel)
+          - platform: windows-latest
+            target: ''
+            name: Windows (x64)
+          - platform: ubuntu-22.04
+            target: ''
+            name: Linux (x64)
 
-    name: macOS (${{ matrix.name }})
-    runs-on: macos-latest
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.platform }}
     timeout-minutes: 60
     environment: prod
 
@@ -36,12 +44,23 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          targets: ${{ matrix.target }}
 
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
       - name: Import Apple certificate
+        if: startsWith(matrix.platform, 'macos')
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -59,12 +78,12 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
-      - name: Build Tauri app (sign only, no notarization)
+      - name: Build Tauri app
         id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_SIGNING_IDENTITY: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_SIGNING_IDENTITY || '' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
@@ -74,9 +93,10 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
-          args: --target ${{ matrix.target }}
+          args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
       - name: Write API key file
+        if: startsWith(matrix.platform, 'macos')
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
@@ -84,6 +104,7 @@ jobs:
           echo -n "$APPLE_API_KEY" | base64 --decode -o $RUNNER_TEMP/apple-keys/AuthKey.p8
 
       - name: Notarize and staple
+        if: startsWith(matrix.platform, 'macos')
         timeout-minutes: 50
         env:
           APPLE_API_KEY_PATH: ${{ runner.temp }}/apple-keys/AuthKey.p8

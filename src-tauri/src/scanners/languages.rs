@@ -46,26 +46,32 @@ fn parse_java_version(output: &str) -> String {
 }
 
 fn detect_node_manager(path: &str) -> String {
-    if path.contains("nvm") {
+    let p = path.to_lowercase();
+    if p.contains("nvm") {
         "nvm".to_string()
-    } else if path.contains("fnm") {
+    } else if p.contains("fnm") {
         "fnm".to_string()
-    } else if path.contains("volta") {
+    } else if p.contains("volta") {
         "volta".to_string()
-    } else if path.contains("homebrew") || path.contains("brew") {
+    } else if p.contains("homebrew") || p.contains("brew") {
         "homebrew".to_string()
+    } else if p.contains("\\scoop\\") {
+        "scoop".to_string()
     } else {
         "system".to_string()
     }
 }
 
 fn detect_python_manager(path: &str) -> String {
-    if path.contains("pyenv") {
+    let p = path.to_lowercase();
+    if p.contains("pyenv") {
         "pyenv".to_string()
-    } else if path.contains("conda") || path.contains("miniconda") || path.contains("anaconda") {
+    } else if p.contains("conda") || p.contains("miniconda") || p.contains("anaconda") {
         "conda".to_string()
-    } else if path.contains("homebrew") || path.contains("brew") {
+    } else if p.contains("homebrew") || p.contains("brew") {
         "homebrew".to_string()
+    } else if p.contains("\\programs\\python") {
+        "official installer".to_string()
     } else {
         "system".to_string()
     }
@@ -84,10 +90,17 @@ fn detect_ruby_manager(path: &str) -> String {
 }
 
 fn detect_generic_manager(path: &str) -> String {
-    if path.contains("homebrew") || path.contains("brew") {
+    let p = path.to_lowercase();
+    if p.contains("homebrew") || p.contains("brew") {
         "homebrew".to_string()
-    } else if path.contains("mise") || path.contains("asdf") {
+    } else if p.contains("mise") || p.contains("asdf") {
         "mise/asdf".to_string()
+    } else if p.contains("\\scoop\\") {
+        "scoop".to_string()
+    } else if p.contains("\\chocolatey\\") {
+        "chocolatey".to_string()
+    } else if p.contains("\\winget\\") {
+        "winget".to_string()
     } else {
         "system".to_string()
     }
@@ -183,13 +196,20 @@ const LANGUAGES: &[LanguageSpec] = &[
 ];
 
 fn which(binary: &str) -> Option<String> {
-    Command::new("which")
+    #[cfg(unix)]
+    let cmd = "which";
+    #[cfg(windows)]
+    let cmd = "where.exe";
+
+    Command::new(cmd)
         .arg(binary)
         .output()
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+                // `where.exe` returns multiple lines; take first
+                let out = String::from_utf8_lossy(&o.stdout);
+                Some(out.lines().next()?.trim().to_string())
             } else {
                 None
             }

@@ -5,6 +5,10 @@
 /// sees the same PATH, env vars, and binaries as a terminal session.
 /// `fix_path_env` only partially restores PATH; this loads everything
 /// the shell profile sets (nvm, pyenv, rbenv, GOPATH, custom vars, etc).
+///
+/// Only runs on Unix (macOS/Linux) — Windows GUI apps already inherit
+/// the full user environment from the registry.
+#[cfg(unix)]
 fn load_shell_env() {
     // fix_path_env as a baseline
     let _ = fix_path_env::fix();
@@ -36,6 +40,8 @@ fn load_shell_env() {
 }
 
 fn main() {
+    #[cfg(unix)]
     load_shell_env();
+
     houston_lib::run()
 }
