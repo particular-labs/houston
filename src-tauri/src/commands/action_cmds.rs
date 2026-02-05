@@ -52,7 +52,7 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
         }
     }
 
-    // Windows: also try notepad++ and native notepad
+    // Platform-specific fallbacks
     #[cfg(target_os = "windows")]
     {
         let win_editors = ["notepad++", "notepad"];
@@ -63,7 +63,6 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
         }
     }
 
-    // macOS fallback: open with default app
     #[cfg(target_os = "macos")]
     {
         Command::new("open")
@@ -73,7 +72,6 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
         return Ok(());
     }
 
-    // Linux fallback: xdg-open
     #[cfg(target_os = "linux")]
     {
         Command::new("xdg-open")
@@ -83,7 +81,7 @@ pub fn open_in_editor(path: String) -> Result<(), String> {
         return Ok(());
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    #[allow(unreachable_code)]
     Err("No editor found".to_string())
 }
 

@@ -586,26 +586,23 @@ fn check_linux_packages() -> Vec<DiagnosticItem> {
                 .lines()
                 .filter(|l| l.contains("[upgradable"))
                 .collect();
-            if upgradable.len() > 10 {
+            if !upgradable.is_empty() {
+                let mut detail = upgradable
+                    .iter()
+                    .take(10)
+                    .cloned()
+                    .collect::<Vec<&str>>()
+                    .join("\n");
+                if upgradable.len() > 10 {
+                    detail.push_str(&format!("\n... and {} more", upgradable.len() - 10));
+                }
                 items.push(DiagnosticItem {
                     id: "apt_outdated".to_string(),
                     category: "packages".to_string(),
                     severity: Severity::Info,
                     title: format!("{} apt packages can be upgraded", upgradable.len()),
                     description: "Run `sudo apt upgrade` to update system packages".to_string(),
-                    details: Some(
-                        upgradable
-                            .iter()
-                            .take(10)
-                            .cloned()
-                            .collect::<Vec<&str>>()
-                            .join("\n")
-                            + if upgradable.len() > 10 {
-                                &format!("\n... and {} more", upgradable.len() - 10)
-                            } else {
-                                ""
-                            },
-                    ),
+                    details: Some(detail),
                     fix_id: None,
                     fix_label: None,
                 });
