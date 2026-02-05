@@ -70,33 +70,56 @@ pub fn run() {
                 }
             }
 
-            // Pre-warm caches in background
+            // Pre-warm caches in parallel — one thread per scanner
             {
                 use tauri::Manager;
-                let app_handle = app.handle().clone();
-                std::thread::spawn(move || {
-                    let state = app_handle.state::<AppState>();
+                let handle = app.handle().clone();
 
-                    // Fast scans first (Dashboard needs these)
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let sys = scanners::system::scan();
                     state.system_cache.lock().unwrap().set(sys);
+                });
 
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let paths = scanners::path::scan();
                     state.path_cache.lock().unwrap().set(paths);
+                });
 
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let langs = scanners::languages::scan();
                     state.language_cache.lock().unwrap().set(langs);
+                });
 
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let envs = scanners::environment::scan();
                     state.env_cache.lock().unwrap().set(envs);
+                });
 
-                    // Slower scans (user may not visit immediately)
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let pkgs = scanners::packages::scan();
                     state.package_cache.lock().unwrap().set(pkgs);
+                });
 
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let ai_tools = scanners::ai_tools::scan();
                     state.ai_tools_cache.lock().unwrap().set(ai_tools);
+                });
 
+                let h = handle.clone();
+                std::thread::spawn(move || {
+                    let state = h.state::<AppState>();
                     let diag = scanners::diagnostics::scan();
                     state.diagnostics_cache.lock().unwrap().set(diag);
                 });

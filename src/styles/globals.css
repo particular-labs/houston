@@ -67,6 +67,13 @@
     -webkit-app-region: drag;
   }
 
+  /* Keep interactive children clickable inside drag regions */
+  [data-tauri-drag-region] button,
+  [data-tauri-drag-region] a,
+  [data-tauri-drag-region] input {
+    -webkit-app-region: no-drag;
+  }
+
   /* Hide scrollbar but keep functionality */
   .scrollbar-thin {
     scrollbar-width: thin;

@@ -13,6 +13,8 @@ export interface SystemInfo {
   memory_gb: string;
   username: string;
   home_dir: string;
+  binary_architecture: string;
+  architecture_mismatch: boolean;
 }
 
 export interface PathEntry {

@@ -70,28 +70,6 @@ export function Dashboard() {
   });
   const setSection = useNavigationStore((s) => s.setActiveSection);
 
-  const isLoading = systemLoading || pathsLoading || langsLoading;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Dashboard</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Overview of your development environment
-          </p>
-        </div>
-        <div className="grid grid-cols-5 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
-      </div>
-    );
-  }
-
   const pathWarnings =
     paths?.filter((p) => !p.exists || p.is_duplicate).length ?? 0;
   const installedLangs = languages?.filter((l) => l.installed).length ?? 0;
@@ -110,40 +88,66 @@ export function Dashboard() {
         </p>
       </div>
 
-      {/* Metric cards */}
+      {/* Architecture mismatch warning */}
+      {system?.architecture_mismatch && (
+        <div className="rounded-lg border border-warning/25 bg-warning/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-warning">
+            <AlertTriangle className="h-4 w-4" />
+            Running under Rosetta 2
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            You're running the x86_64 build on Apple Silicon via Rosetta 2.
+            Download the Apple Silicon (aarch64) build for native speed.
+          </p>
+        </div>
+      )}
+
+      {/* Metric cards — each renders independently */}
       <div className="grid grid-cols-5 gap-4">
-        <MetricCard
-          icon={Monitor}
-          label="System"
-          value={system ? "OK" : "..."}
-          status="success"
-          detail={
-            system
-              ? `${system.os_name} ${system.os_version} (${system.architecture})`
-              : undefined
-          }
-          onClick={() => setSection("system")}
-        />
-        <MetricCard
-          icon={Route}
-          label="PATH"
-          value={pathWarnings}
-          status={pathWarnings > 0 ? "warning" : "success"}
-          detail={
-            pathWarnings > 0
-              ? `${pathWarnings} issue${pathWarnings > 1 ? "s" : ""} found`
-              : `${paths?.length ?? 0} entries, all valid`
-          }
-          onClick={() => setSection("path")}
-        />
-        <MetricCard
-          icon={Code2}
-          label="Languages"
-          value={installedLangs}
-          status="info"
-          detail={`${installedLangs} runtime${installedLangs !== 1 ? "s" : ""} detected`}
-          onClick={() => setSection("languages")}
-        />
+        {systemLoading ? (
+          <CardSkeleton />
+        ) : (
+          <MetricCard
+            icon={Monitor}
+            label="System"
+            value={system ? "OK" : "..."}
+            status="success"
+            detail={
+              system
+                ? `${system.os_name} ${system.os_version} (${system.architecture})`
+                : undefined
+            }
+            onClick={() => setSection("system")}
+          />
+        )}
+        {pathsLoading ? (
+          <CardSkeleton />
+        ) : (
+          <MetricCard
+            icon={Route}
+            label="PATH"
+            value={pathWarnings}
+            status={pathWarnings > 0 ? "warning" : "success"}
+            detail={
+              pathWarnings > 0
+                ? `${pathWarnings} issue${pathWarnings > 1 ? "s" : ""} found`
+                : `${paths?.length ?? 0} entries, all valid`
+            }
+            onClick={() => setSection("path")}
+          />
+        )}
+        {langsLoading ? (
+          <CardSkeleton />
+        ) : (
+          <MetricCard
+            icon={Code2}
+            label="Languages"
+            value={installedLangs}
+            status="info"
+            detail={`${installedLangs} runtime${installedLangs !== 1 ? "s" : ""} detected`}
+            onClick={() => setSection("languages")}
+          />
+        )}
         <MetricCard
           icon={GitBranch}
           label="Dirty Repos"
@@ -177,7 +181,9 @@ export function Dashboard() {
           <h3 className="mb-3 text-sm font-medium text-muted-foreground">
             System Overview
           </h3>
-          {system && (
+          {systemLoading ? (
+            <CardSkeleton />
+          ) : system ? (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">OS</span>
@@ -195,6 +201,7 @@ export function Dashboard() {
                 <span className="text-muted-foreground">Architecture</span>
                 <span className="font-mono text-xs">
                   {system.architecture}
+                  {system.architecture_mismatch && " (Rosetta 2)"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -210,7 +217,7 @@ export function Dashboard() {
                 <span className="font-mono text-xs">{system.memory_gb}</span>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Languages grid card */}
@@ -218,22 +225,26 @@ export function Dashboard() {
           <h3 className="mb-3 text-sm font-medium text-muted-foreground">
             Installed Languages
           </h3>
-          <div className="grid grid-cols-2 gap-2">
-            {languages
-              ?.filter((l) => l.installed)
-              .map((lang) => (
-                <div
-                  key={lang.name}
-                  className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5"
-                >
-                  <CheckCircle2 className="h-3 w-3 text-success" />
-                  <span className="text-xs font-medium">{lang.name}</span>
-                  <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                    {lang.version}
-                  </span>
-                </div>
-              ))}
-          </div>
+          {langsLoading ? (
+            <CardSkeleton />
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {languages
+                ?.filter((l) => l.installed)
+                .map((lang) => (
+                  <div
+                    key={lang.name}
+                    className="flex items-center gap-2 rounded-md bg-muted/50 px-2.5 py-1.5"
+                  >
+                    <CheckCircle2 className="h-3 w-3 text-success" />
+                    <span className="text-xs font-medium">{lang.name}</span>
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                      {lang.version}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       </div>
 
