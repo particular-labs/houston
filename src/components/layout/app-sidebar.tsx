@@ -13,15 +13,15 @@ import {
   Moon,
   Download,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useWorkspacePaths } from "@/hooks/use-workspaces";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
+import { useIssuesBySection } from "@/hooks/use-issues-by-section";
 
 interface NavItem {
   id: Section;
@@ -81,12 +81,9 @@ export function AppSidebar() {
   const { data: settings } = useSettings();
   const setSetting = useSetSetting();
   const theme = getSettingValue(settings, "theme", "dark");
-
-  // Workspace paths for onboarding toast
-  const { data: workspacePaths } = useWorkspacePaths();
+  const { totalCount } = useIssuesBySection();
 
   // Refs for tracking state across renders
-  const onboardingShownRef = useRef(false);
   const lastUpdateCheckRef = useRef<number>(0);
 
   useEffect(() => {
@@ -135,23 +132,6 @@ export function AppSidebar() {
     }, CHECK_INTERVAL);
     return () => clearInterval(interval);
   }, [checkForUpdates]);
-
-  // Onboarding toast for empty workspaces
-  useEffect(() => {
-    if (onboardingShownRef.current) return;
-    if (workspacePaths && workspacePaths.length === 0) {
-      onboardingShownRef.current = true;
-      toast("No project folders configured", {
-        description:
-          "Add a workspace folder to monitor your repos, see git status, and quickly open projects.",
-        action: {
-          label: "Add Folder",
-          onClick: () => setActiveSection("workspaces"),
-        },
-        duration: 10000,
-      });
-    }
-  }, [workspacePaths, setActiveSection]);
 
   const handleInstallUpdate = async () => {
     setUpdateState({ status: "downloading", version: updateState.version });
@@ -235,6 +215,36 @@ export function AppSidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Issues Nav Item */}
+      {totalCount > 0 && (
+        <div className="px-3 pb-2">
+          <button
+            onClick={() => setActiveSection("issues")}
+            className={cn(
+              "sidebar-nav-item flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+              activeSection === "issues" && "active"
+            )}
+            style={{
+              backgroundColor:
+                activeSection === "issues"
+                  ? "var(--color-sidebar-accent)"
+                  : "transparent",
+              color:
+                activeSection === "issues"
+                  ? "var(--color-sidebar-accent-foreground)"
+                  : "var(--color-muted-foreground)",
+              fontWeight: activeSection === "issues" ? 500 : 400,
+            }}
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Issues
+            <span className="ml-auto rounded-full bg-destructive px-1.5 text-[10px] font-medium text-white">
+              {totalCount}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Update Banner */}
       {updateState.status === "available" && (

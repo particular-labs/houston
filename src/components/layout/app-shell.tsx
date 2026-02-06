@@ -51,6 +51,11 @@ const SettingsSection = lazy(() =>
     default: m.SettingsSection,
   })),
 );
+const IssuesSection = lazy(() =>
+  import("@/components/sections/issues").then((m) => ({
+    default: m.IssuesSection,
+  })),
+);
 
 const sections = {
   dashboard: Dashboard,
@@ -62,6 +67,7 @@ const sections = {
   packages: PackagesSection,
   tools: ToolsSection,
   settings: SettingsSection,
+  issues: IssuesSection,
 } as const;
 
 export function AppShell() {

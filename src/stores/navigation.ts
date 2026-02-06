@@ -9,7 +9,8 @@ export type Section =
   | "workspaces"
   | "packages"
   | "tools"
-  | "settings";
+  | "settings"
+  | "issues";
 
 export type DetailContext =
   | { type: "project-group"; groupName: string; label: string }
@@ -21,19 +22,23 @@ interface NavigationState {
   activeSection: Section;
   commandPaletteOpen: boolean;
   detailContext: DetailContext | null;
+  issuesExpandedSection: Section | null;
   setActiveSection: (section: Section) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
   setDetailContext: (ctx: DetailContext | null) => void;
+  navigateToIssues: (expandSection?: Section) => void;
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
   activeSection: "dashboard",
   commandPaletteOpen: false,
   detailContext: null,
-  setActiveSection: (section) => set({ activeSection: section, detailContext: null }),
+  issuesExpandedSection: null,
+  setActiveSection: (section) => set({ activeSection: section, detailContext: null, issuesExpandedSection: null }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () =>
     set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
   setDetailContext: (ctx) => set({ detailContext: ctx }),
+  navigateToIssues: (expandSection) => set({ activeSection: "issues", detailContext: null, issuesExpandedSection: expandSection ?? null }),
 }));

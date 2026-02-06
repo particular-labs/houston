@@ -170,7 +170,7 @@ export function Dashboard() {
               ? "All systems healthy"
               : `${diagnosticCount} issue${diagnosticCount !== 1 ? "s" : ""} found`
           }
-          onClick={() => setSection("system")}
+          onClick={() => setSection("issues")}
         />
       </div>
 

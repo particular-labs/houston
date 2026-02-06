@@ -13,6 +13,7 @@ const sectionLabels: Record<Section, string> = {
   packages: "Packages",
   tools: "Tools",
   settings: "Settings",
+  issues: "Issues",
 };
 
 export function AppHeader() {

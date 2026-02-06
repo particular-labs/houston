@@ -5,8 +5,8 @@ import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { IssueLinkBadge } from "@/components/shared/issue-link-badge";
 import { useQueryClient } from "@tanstack/react-query";
-import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 
 const categoryVariant: Record<string, "success" | "warning" | "error" | "info" | "neutral"> = {
   Path: "info",
@@ -54,7 +54,7 @@ export function EnvironmentSection() {
         isRefreshing={isFetching}
       />
 
-      <DiagnosticsBanner categories={["shell", "environment"]} />
+      <IssueLinkBadge section="environment" />
 
       {/* Filters */}
       <div className="flex items-center gap-3">

@@ -11,8 +11,8 @@ import { useSystemInfo } from "@/hooks/use-system-info";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CopyButton } from "@/components/shared/copy-button";
 import { CardSkeleton } from "@/components/shared/skeleton";
+import { IssueLinkBadge } from "@/components/shared/issue-link-badge";
 import { useQueryClient } from "@tanstack/react-query";
-import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 
 function InfoRow({
   icon: Icon,
@@ -64,7 +64,7 @@ export function SystemSection() {
         isRefreshing={isFetching}
       />
 
-      <DiagnosticsBanner categories={["brew"]} />
+      <IssueLinkBadge section="system" />
 
       <div className="grid grid-cols-2 gap-4">
         {/* OS & Hardware */}

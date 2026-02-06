@@ -6,8 +6,8 @@ import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { IssueLinkBadge } from "@/components/shared/issue-link-badge";
 import { useQueryClient } from "@tanstack/react-query";
-import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 
 export function PathInspector() {
   const { data: entries, isLoading, isFetching } = usePathEntries();
@@ -41,7 +41,7 @@ export function PathInspector() {
         isRefreshing={isFetching}
       />
 
-      <DiagnosticsBanner categories={["path", "binaries"]} />
+      <IssueLinkBadge section="path" />
 
       {/* Filters */}
       <div className="flex items-center gap-3">

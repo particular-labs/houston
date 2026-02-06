@@ -76,6 +76,7 @@ const STARTUP_SECTIONS = [
   { value: "workspaces", label: "Workspaces" },
   { value: "packages", label: "Packages" },
   { value: "tools", label: "AI Tools" },
+  { value: "issues", label: "Issues" },
   { value: "settings", label: "Settings" },
 ];
 
@@ -140,6 +141,7 @@ function GeneralCard() {
   const defaultEditor = getSettingValue(settings, "default_editor", "auto");
   const startupSection = getSettingValue(settings, "startup_section", "dashboard");
   const autoScan = getSettingValue(settings, "auto_scan_on_startup", "true");
+  const snarkyEnabled = getSettingValue(settings, "snarky_comments", "true");
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -204,6 +206,30 @@ function GeneralCard() {
               className={cn(
                 "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
                 autoScan === "true" ? "left-[18px]" : "left-0.5"
+              )}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-muted-foreground">
+            Snarky comments
+          </label>
+          <button
+            onClick={() =>
+              setSetting.mutate({
+                key: "snarky_comments",
+                value: snarkyEnabled === "true" ? "false" : "true",
+              })
+            }
+            className={cn(
+              "relative h-5 w-9 rounded-full transition-colors",
+              snarkyEnabled === "true" ? "bg-primary" : "bg-muted"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
+                snarkyEnabled === "true" ? "left-[18px]" : "left-0.5"
               )}
             />
           </button>

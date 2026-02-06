@@ -6,8 +6,8 @@ import { SearchInput } from "@/components/shared/search-input";
 import { CopyButton } from "@/components/shared/copy-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { TableSkeleton } from "@/components/shared/skeleton";
+import { IssueLinkBadge } from "@/components/shared/issue-link-badge";
 import { useQueryClient } from "@tanstack/react-query";
-import { DiagnosticsBanner } from "@/components/shared/diagnostics-banner";
 import type { PackageInfo } from "@/lib/commands";
 
 type Tab = "npm" | "brew" | "pip" | "cargo" | "scoop" | "chocolatey";
@@ -113,7 +113,7 @@ export function PackagesSection() {
         isRefreshing={isFetching}
       />
 
-      <DiagnosticsBanner categories={["packages"]} />
+      <IssueLinkBadge section="packages" />
 
       {/* Content */}
       {isLoading ? (
