@@ -167,6 +167,7 @@ export function DiagnosticsBanner({ categories }: DiagnosticsBannerProps) {
       <button
         onClick={() => setExpanded(!isExpanded)}
         className="flex w-full items-center gap-2"
+        aria-expanded={isExpanded}
       >
         <TopIcon className={`h-4 w-4 ${severityText[topSeverity]}`} />
         <span className={`text-xs font-medium ${severityText[topSeverity]}`}>

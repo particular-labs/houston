@@ -114,6 +114,7 @@ export function AppHeader() {
           onClick={handleRefreshAll}
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Refresh all (Cmd+R)"
+          aria-label="Refresh all"
         >
           <RefreshCw
             className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}

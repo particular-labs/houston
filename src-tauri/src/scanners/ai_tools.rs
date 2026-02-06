@@ -915,7 +915,10 @@ pub fn scan() -> AiToolsReport {
         })
         .collect();
 
-    let tools: Vec<AiToolInfo> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    let tools: Vec<AiToolInfo> = handles
+        .into_iter()
+        .filter_map(|h| h.join().ok())
+        .collect();
 
     AiToolsReport {
         tools,

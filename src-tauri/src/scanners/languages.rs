@@ -280,5 +280,8 @@ pub fn scan() -> Vec<LanguageInfo> {
         })
         .collect();
 
-    handles.into_iter().map(|h| h.join().unwrap()).collect()
+    handles
+        .into_iter()
+        .filter_map(|h| h.join().ok())
+        .collect()
 }

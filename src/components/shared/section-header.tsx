@@ -34,6 +34,7 @@ export function SectionHeader({
             disabled={isRefreshing}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
             title="Refresh"
+            aria-label="Refresh"
           >
             <RefreshCw
               className={cn("h-4 w-4", isRefreshing && "animate-spin")}

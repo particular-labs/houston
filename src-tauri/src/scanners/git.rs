@@ -127,7 +127,8 @@ pub fn get_statuses(project_paths: &[String]) -> Vec<GitStatus> {
 
     handles
         .into_iter()
-        .filter_map(|h| h.join().unwrap())
+        .filter_map(|h| h.join().ok())
+        .flatten()
         .collect()
 }
 

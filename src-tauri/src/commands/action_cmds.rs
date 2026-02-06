@@ -1,9 +1,27 @@
 use crate::state::AppState;
+use std::path::Path;
 use std::process::Command;
 use tauri::State;
 
+/// Validates that a path exists and is a directory, returning its canonical form.
+/// This prevents command injection by ensuring the path is a real filesystem directory.
+fn validate_path(path: &str) -> Result<std::path::PathBuf, String> {
+    let path_obj = Path::new(path);
+    if !path_obj.exists() {
+        return Err("Path does not exist".to_string());
+    }
+    if !path_obj.is_dir() {
+        return Err("Path must be a directory".to_string());
+    }
+    path_obj
+        .canonicalize()
+        .map_err(|e| format!("Invalid path: {}", e))
+}
+
 #[tauri::command]
 pub fn open_in_terminal(path: String) -> Result<(), String> {
+    let validated_path = validate_path(&path)?;
+    let path = validated_path.to_string_lossy().to_string();
     #[cfg(target_os = "macos")]
     {
         Command::new("open")
@@ -45,6 +63,9 @@ pub fn open_in_terminal(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn open_in_editor(state: State<'_, AppState>, path: String) -> Result<(), String> {
+    let validated_path = validate_path(&path)?;
+    let path = validated_path.to_string_lossy().to_string();
+
     // Get preferred editor from settings
     let preferred_editor = {
         let db = state.db.lock().unwrap();
@@ -105,8 +126,10 @@ pub fn open_in_editor(state: State<'_, AppState>, path: String) -> Result<(), St
 
 #[tauri::command]
 pub fn open_claude_code(path: String) -> Result<(), String> {
+    let validated_path = validate_path(&path)?;
+
     Command::new("claude")
-        .current_dir(&path)
+        .current_dir(&validated_path)
         .spawn()
         .map_err(|e| format!("Failed to open Claude Code: {}", e))?;
     Ok(())

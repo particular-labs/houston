@@ -24,6 +24,7 @@ export function CopyButton({ value, className }: CopyButtonProps) {
         className,
       )}
       title="Copy to clipboard"
+      aria-label="Copy to clipboard"
     >
       {copied ? (
         <Check className="h-3 w-3 text-success" />

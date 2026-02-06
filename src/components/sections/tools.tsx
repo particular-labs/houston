@@ -311,6 +311,7 @@ function ToolDetailView({ toolName }: { toolName: string }) {
         <button
           onClick={() => setDetailContext(null)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Back to Tools"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Tools
@@ -339,6 +340,7 @@ function ToolDetailView({ toolName }: { toolName: string }) {
         <button
           onClick={() => setDetailContext(null)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Back to Tools"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Tools
@@ -493,6 +495,7 @@ function ToolDetailView({ toolName }: { toolName: string }) {
           <button
             onClick={() => setMcpExpanded(!mcpExpanded)}
             className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium hover:bg-accent/30"
+            aria-expanded={mcpExpanded}
           >
             <div className="flex items-center gap-2">
               <Server className="h-3.5 w-3.5 text-muted-foreground" />

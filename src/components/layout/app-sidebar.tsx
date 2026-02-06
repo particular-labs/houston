@@ -316,6 +316,7 @@ export function AppSidebar() {
             onClick={() => setActiveSection("settings")}
             className="sidebar-settings-btn transition-colors"
             style={{ color: "var(--color-muted-foreground)" }}
+            aria-label="Settings"
           >
             <Settings className="h-4 w-4" />
           </button>
@@ -332,6 +333,7 @@ export function AppSidebar() {
           onClick={toggleTheme}
           className="sidebar-settings-btn transition-colors"
           style={{ color: "var(--color-muted-foreground)" }}
+          aria-label="Toggle theme"
         >
           {theme === "dark" ? (
             <Sun className="h-4 w-4" />

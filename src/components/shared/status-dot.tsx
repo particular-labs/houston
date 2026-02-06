@@ -25,6 +25,8 @@ export function StatusDot({ status, className, pulse }: StatusDotProps) {
         pulse && "animate-pulse",
         className,
       )}
+      role="status"
+      aria-label={`Status: ${status}`}
     />
   );
 }

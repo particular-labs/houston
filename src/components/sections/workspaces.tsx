@@ -235,6 +235,7 @@ function SubfolderAccordion({
           <button
             onClick={() => toggle(category)}
             className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/30"
+            aria-expanded={isExpanded(category)}
           >
             <div className="flex items-center gap-2">
               <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
@@ -386,6 +387,7 @@ function ProjectGroupDetail({ groupName }: { groupName: string }) {
           onClick={() => setDetailContext(null)}
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Back to projects"
+          aria-label="Back to projects"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -491,6 +493,7 @@ function MonorepoWorktreeDetail({
           }
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title={`Back to ${parentGroupName}`}
+          aria-label={`Back to ${parentGroupName}`}
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -699,6 +702,7 @@ export function WorkspacesSection() {
             value={searchFilter}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Filter projects..."
+            aria-label="Filter projects"
             className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
