@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LayoutDashboard,
   Monitor,
@@ -17,7 +17,9 @@ import {
 import { getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useWorkspacePaths } from "@/hooks/use-workspaces";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
 
@@ -68,6 +70,10 @@ type UpdateState = {
   version?: string;
 };
 
+// Update check timing constants
+const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
+const MIN_CHECK_GAP = 60 * 60 * 1000; // 1 hour minimum between checks
+
 export function AppSidebar() {
   const { activeSection, setActiveSection } = useNavigationStore();
   const [version, setVersion] = useState("");
@@ -76,27 +82,76 @@ export function AppSidebar() {
   const setSetting = useSetSetting();
   const theme = getSettingValue(settings, "theme", "dark");
 
+  // Workspace paths for onboarding toast
+  const { data: workspacePaths } = useWorkspacePaths();
+
+  // Refs for tracking state across renders
+  const onboardingShownRef = useRef(false);
+  const lastUpdateCheckRef = useRef<number>(0);
+
   useEffect(() => {
     getVersion().then(setVersion);
   }, []);
 
-  // Auto-check for updates on mount
-  useEffect(() => {
-    const checkForUpdates = async () => {
-      setUpdateState({ status: "checking" });
-      try {
-        const update = await check();
-        if (update?.available) {
-          setUpdateState({ status: "available", version: update.version });
-        } else {
-          setUpdateState({ status: "up-to-date" });
-        }
-      } catch {
-        setUpdateState({ status: "error" });
+  // Reusable update check function with rate limiting
+  const checkForUpdates = useCallback(async () => {
+    // Skip if already checking or recently checked
+    if (updateState.status === "checking") return;
+    if (Date.now() - lastUpdateCheckRef.current < MIN_CHECK_GAP) return;
+
+    lastUpdateCheckRef.current = Date.now();
+    setUpdateState({ status: "checking" });
+    try {
+      const update = await check();
+      if (update?.available) {
+        setUpdateState({ status: "available", version: update.version });
+      } else {
+        setUpdateState({ status: "up-to-date" });
       }
-    };
+    } catch {
+      setUpdateState({ status: "error" });
+    }
+  }, [updateState.status]);
+
+  // Check for updates on mount
+  useEffect(() => {
     checkForUpdates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Check for updates on window focus (if rate limit allows)
+  useEffect(() => {
+    const handleFocus = () => {
+      checkForUpdates();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [checkForUpdates]);
+
+  // Periodic update check fallback (every 4 hours)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkForUpdates();
+    }, CHECK_INTERVAL);
+    return () => clearInterval(interval);
+  }, [checkForUpdates]);
+
+  // Onboarding toast for empty workspaces
+  useEffect(() => {
+    if (onboardingShownRef.current) return;
+    if (workspacePaths && workspacePaths.length === 0) {
+      onboardingShownRef.current = true;
+      toast("No project folders configured", {
+        description:
+          "Add a workspace folder to monitor your repos, see git status, and quickly open projects.",
+        action: {
+          label: "Add Folder",
+          onClick: () => setActiveSection("workspaces"),
+        },
+        duration: 10000,
+      });
+    }
+  }, [workspacePaths, setActiveSection]);
 
   const handleInstallUpdate = async () => {
     setUpdateState({ status: "downloading", version: updateState.version });
