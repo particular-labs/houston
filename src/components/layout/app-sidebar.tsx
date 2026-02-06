@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
 import { useIssuesBySection } from "@/hooks/use-issues-by-section";
+import { useProjects } from "@/hooks/use-workspaces";
 
 interface NavItem {
   id: Section;
@@ -82,6 +83,8 @@ export function AppSidebar() {
   const setSetting = useSetSetting();
   const theme = getSettingValue(settings, "theme", "dark");
   const { totalCount } = useIssuesBySection();
+  const { data: projects } = useProjects();
+  const projectCount = projects?.length ?? 0;
 
   // Refs for tracking state across renders
   const lastUpdateCheckRef = useRef<number>(0);
@@ -189,6 +192,7 @@ export function AppSidebar() {
             {group.items.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
+              const showProjectCount = item.id === "workspaces" && projectCount > 0;
               return (
                 <button
                   key={item.id}
@@ -209,6 +213,11 @@ export function AppSidebar() {
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   {item.label}
+                  {showProjectCount && (
+                    <span className="ml-auto rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                      {projectCount}
+                    </span>
+                  )}
                 </button>
               );
             })}

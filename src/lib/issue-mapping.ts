@@ -19,7 +19,7 @@ export const sectionLabels: Record<Section, string> = {
   environment: "Environment",
   workspaces: "Projects",
   packages: "Packages",
-  tools: "AI Tools",
+  tools: "Tools",
   settings: "Settings",
   issues: "Issues",
 };

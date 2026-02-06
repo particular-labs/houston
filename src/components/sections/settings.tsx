@@ -75,7 +75,7 @@ const STARTUP_SECTIONS = [
   { value: "environment", label: "Environment" },
   { value: "workspaces", label: "Workspaces" },
   { value: "packages", label: "Packages" },
-  { value: "tools", label: "AI Tools" },
+  { value: "tools", label: "Tools" },
   { value: "issues", label: "Issues" },
   { value: "settings", label: "Settings" },
 ];
