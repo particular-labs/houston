@@ -794,6 +794,9 @@
       }
     }
   </style>
+
+  <!-- Analytics -->
+  <script defer src="https://umami.particularlabs.cloud/script.js" data-website-id="e4598c16-177a-444d-9304-2b0f2f68d6d9"></script>
 </head>
 <body>
 
@@ -1211,11 +1214,21 @@
 
         const downloadData = createDownloadDropdown(platform, assets, version);
 
+        // Determine primary platform for tracking
+        const primaryPlatform = platform.os === 'macos' ? 'macos-arm' :
+                                platform.os === 'windows' ? 'windows' :
+                                platform.os === 'linux' ? 'linux-appimage' : 'unknown';
+
         // Update hero section
         const heroBtn = document.getElementById('hero-download-btn');
         if (heroBtn) {
           heroBtn.href = downloadData.primary.url;
           heroBtn.querySelector('span').textContent = downloadData.primary.label;
+          heroBtn.addEventListener('click', () => {
+            if (typeof umami !== 'undefined') {
+              umami.track('download-click', { platform: primaryPlatform, source: 'hero' });
+            }
+          });
         }
 
         // Update CTA section
@@ -1223,6 +1236,11 @@
         if (ctaBtn) {
           ctaBtn.href = downloadData.primary.url;
           ctaBtn.querySelector('span').textContent = downloadData.primary.label;
+          ctaBtn.addEventListener('click', () => {
+            if (typeof umami !== 'undefined') {
+              umami.track('download-click', { platform: primaryPlatform, source: 'cta' });
+            }
+          });
         }
 
         // Show version badge
@@ -1309,6 +1327,11 @@
             <span>${config.label}</span>
             <span class="download-size">${formatSize(item.asset.size)}</span>
           `;
+          link.addEventListener('click', () => {
+            if (typeof umami !== 'undefined') {
+              umami.track('download-click', { platform: item.key, source: 'dropdown' });
+            }
+          });
           dropdown.appendChild(link);
         }
 
@@ -1318,7 +1341,11 @@
         toggle.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
+          const wasOpen = wrapper.classList.contains('open');
           wrapper.classList.toggle('open');
+          if (!wasOpen && typeof umami !== 'undefined') {
+            umami.track('download-dropdown-open');
+          }
         });
 
         // Close dropdown when clicking outside
@@ -1363,6 +1390,11 @@
           tab.addEventListener('click', () => {
             const screen = tab.dataset.screen;
 
+            // Track gallery tab click
+            if (typeof umami !== 'undefined') {
+              umami.track('gallery-view', { screen: screen });
+            }
+
             // Update active tab
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
@@ -1381,6 +1413,77 @@
         document.addEventListener('DOMContentLoaded', initGallery);
       } else {
         initGallery();
+      }
+    })();
+
+    // Outbound link tracking
+    (function() {
+      function initOutboundTracking() {
+        document.querySelectorAll('a[href^="https://github.com"]').forEach(link => {
+          link.addEventListener('click', () => {
+            if (typeof umami !== 'undefined') {
+              const url = new URL(link.href);
+              const path = url.pathname;
+              let linkType = 'github-other';
+
+              if (path.includes('/releases')) {
+                linkType = 'github-releases';
+              } else if (path === '/particular-labs/houston' || path === '/particular-labs/houston/') {
+                linkType = 'github-repo';
+              } else if (path === '/particular-labs' || path === '/particular-labs/') {
+                linkType = 'github-org';
+              }
+
+              umami.track('outbound-click', { type: linkType, url: link.href });
+            }
+          });
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initOutboundTracking);
+      } else {
+        initOutboundTracking();
+      }
+    })();
+
+    // Section visibility tracking
+    (function() {
+      function initSectionTracking() {
+        if (typeof umami === 'undefined' || !('IntersectionObserver' in window)) return;
+
+        const sections = {
+          'gallery': document.getElementById('gallery'),
+          'features': document.getElementById('features'),
+          'stack': document.getElementById('stack'),
+          'download': document.getElementById('download')
+        };
+
+        const trackedSections = new Set();
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const sectionId = entry.target.id;
+              if (!trackedSections.has(sectionId)) {
+                trackedSections.add(sectionId);
+                umami.track('section-view', { section: sectionId });
+              }
+            }
+          });
+        }, {
+          threshold: 0.3 // Trigger when 30% of section is visible
+        });
+
+        Object.values(sections).forEach(section => {
+          if (section) observer.observe(section);
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSectionTracking);
+      } else {
+        initSectionTracking();
       }
     })();
   </script>
