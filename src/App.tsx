@@ -6,6 +6,8 @@ import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useTheme } from "@/hooks/use-theme";
 import { useSetting } from "@/hooks/use-settings";
 import { useWhatsNewCheck } from "@/hooks/use-whats-new";
+import { useOnboardingCheck } from "@/hooks/use-onboarding";
+import { useUpdateChecker } from "@/hooks/use-update-checker";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +79,16 @@ function WhatsNewCheck() {
   return null;
 }
 
+function OnboardingCheck() {
+  useOnboardingCheck();
+  return null;
+}
+
+function UpdateChecker() {
+  useUpdateChecker();
+  return null;
+}
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   return (
@@ -110,6 +122,8 @@ export default function App() {
       <ThemeProvider>
         <StartupSection />
         <WhatsNewCheck />
+        <OnboardingCheck />
+        <UpdateChecker />
         <KeyboardShortcuts />
         <AppShell />
       </ThemeProvider>

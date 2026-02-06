@@ -30,6 +30,7 @@ import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-setting
 import { appDataDir } from "@tauri-apps/api/path";
 import { useQuery } from "@tanstack/react-query";
 import { ReleaseNotesSection } from "./release-notes";
+import { useUpdateStore, type UpdateStatus } from "@/stores/update";
 
 function formatUptime(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -51,14 +52,6 @@ function hitRate(hits: number, misses: number): string {
   if (total === 0) return "-";
   return `${((hits / total) * 100).toFixed(0)}%`;
 }
-
-type UpdateStatus =
-  | "idle"
-  | "checking"
-  | "available"
-  | "downloading"
-  | "up-to-date"
-  | "error";
 
 type SettingsTab = "general" | "performance" | "system" | "releases";
 
@@ -597,8 +590,7 @@ export function SettingsSection() {
   const { data: stats, isLoading } = useAppStats();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
-  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
-  const [updateVersion, setUpdateVersion] = useState<string>("");
+  const { status: updateStatus, version: updateVersion, setStatus: setUpdateStatus } = useUpdateStore();
   const [updateError, setUpdateError] = useState<string>("");
 
   const handleClearCaches = () => {
@@ -611,8 +603,7 @@ export function SettingsSection() {
     try {
       const update = await check();
       if (update?.available) {
-        setUpdateVersion(update.version);
-        setUpdateStatus("available");
+        setUpdateStatus("available", update.version);
       } else {
         setUpdateStatus("up-to-date");
       }
@@ -623,7 +614,7 @@ export function SettingsSection() {
   };
 
   const handleInstallUpdate = async () => {
-    setUpdateStatus("downloading");
+    setUpdateStatus("downloading", updateVersion);
     try {
       const update = await check();
       if (update?.available) {
@@ -699,7 +690,7 @@ export function SettingsSection() {
           <SystemTabContent
             stats={stats}
             updateStatus={updateStatus}
-            updateVersion={updateVersion}
+            updateVersion={updateVersion ?? ""}
             updateError={updateError}
             onCheckUpdate={handleCheckUpdate}
             onInstallUpdate={handleInstallUpdate}

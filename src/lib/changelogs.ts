@@ -17,6 +17,43 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.8.0",
+    date: "2026-02-06",
+    title: "Onboarding & Reliable Updates",
+    summary: "A welcoming first-launch experience and improved background update checking.",
+    highlights: [
+      "Onboarding modal welcomes first-time users with a quick start guide",
+      "Reliable background update checking with global state",
+      "Hourly update checks for faster update delivery",
+    ],
+    sections: [
+      {
+        title: "New Features",
+        items: [
+          "First-launch onboarding modal with quick start tips",
+          "Keyboard shortcuts reference in onboarding",
+          "One-click navigation to Workspaces after onboarding",
+        ],
+      },
+      {
+        title: "Improvements",
+        items: [
+          "Update state now shared between sidebar and settings",
+          "Background update checks run every hour during active development",
+          "Rate-limited focus checks prevent duplicate API calls",
+        ],
+      },
+      {
+        title: "Technical",
+        items: [
+          "New Zustand store for global update state",
+          "Centralized update checker hook with refs to avoid effect loops",
+          "Onboarding state persisted via has_seen_onboarding setting",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.7.2",
     date: "2026-02-06",
     title: "Release Notes Display Fix",

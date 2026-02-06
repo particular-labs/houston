@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Monitor,
@@ -20,6 +20,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { cn } from "@/lib/utils";
 import { useNavigationStore, type Section } from "@/stores/navigation";
+import { useUpdateStore } from "@/stores/update";
 import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
 import { useIssuesBySection } from "@/hooks/use-issues-by-section";
 import { useProjects } from "@/hooks/use-workspaces";
@@ -66,19 +67,10 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-type UpdateState = {
-  status: "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
-  version?: string;
-};
-
-// Update check timing constants
-const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
-const MIN_CHECK_GAP = 60 * 60 * 1000; // 1 hour minimum between checks
-
 export function AppSidebar() {
   const { activeSection, setActiveSection } = useNavigationStore();
+  const { status: updateStatus, version: updateVersion, setStatus: setUpdateStatus } = useUpdateStore();
   const [version, setVersion] = useState("");
-  const [updateState, setUpdateState] = useState<UpdateState>({ status: "idle" });
   const { data: settings } = useSettings();
   const setSetting = useSetSetting();
   const theme = getSettingValue(settings, "theme", "dark");
@@ -86,58 +78,12 @@ export function AppSidebar() {
   const { data: projects } = useProjects();
   const projectCount = projects?.length ?? 0;
 
-  // Refs for tracking state across renders
-  const lastUpdateCheckRef = useRef<number>(0);
-
   useEffect(() => {
     getVersion().then(setVersion);
   }, []);
 
-  // Reusable update check function with rate limiting
-  const checkForUpdates = useCallback(async () => {
-    // Skip if already checking or recently checked
-    if (updateState.status === "checking") return;
-    if (Date.now() - lastUpdateCheckRef.current < MIN_CHECK_GAP) return;
-
-    lastUpdateCheckRef.current = Date.now();
-    setUpdateState({ status: "checking" });
-    try {
-      const update = await check();
-      if (update?.available) {
-        setUpdateState({ status: "available", version: update.version });
-      } else {
-        setUpdateState({ status: "up-to-date" });
-      }
-    } catch {
-      setUpdateState({ status: "error" });
-    }
-  }, [updateState.status]);
-
-  // Check for updates on mount
-  useEffect(() => {
-    checkForUpdates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Check for updates on window focus (if rate limit allows)
-  useEffect(() => {
-    const handleFocus = () => {
-      checkForUpdates();
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [checkForUpdates]);
-
-  // Periodic update check fallback (every 4 hours)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      checkForUpdates();
-    }, CHECK_INTERVAL);
-    return () => clearInterval(interval);
-  }, [checkForUpdates]);
-
   const handleInstallUpdate = async () => {
-    setUpdateState({ status: "downloading", version: updateState.version });
+    setUpdateStatus("downloading", updateVersion);
     try {
       const update = await check();
       if (update?.available) {
@@ -145,7 +91,7 @@ export function AppSidebar() {
         await relaunch();
       }
     } catch {
-      setUpdateState({ status: "error" });
+      setUpdateStatus("error");
     }
   };
 
@@ -256,7 +202,7 @@ export function AppSidebar() {
       )}
 
       {/* Update Banner */}
-      {updateState.status === "available" && (
+      {updateStatus === "available" && (
         <div
           className="mx-3 mb-2 rounded-md px-3 py-2"
           style={{ backgroundColor: "var(--color-sidebar-accent)" }}
@@ -271,7 +217,7 @@ export function AppSidebar() {
                 className="text-xs font-medium"
                 style={{ color: "var(--color-sidebar-foreground)" }}
               >
-                v{updateState.version}
+                v{updateVersion}
               </span>
             </div>
             <button
@@ -288,7 +234,7 @@ export function AppSidebar() {
         </div>
       )}
 
-      {updateState.status === "downloading" && (
+      {updateStatus === "downloading" && (
         <div
           className="mx-3 mb-2 flex items-center gap-2 rounded-md px-3 py-2"
           style={{ backgroundColor: "var(--color-sidebar-accent)" }}

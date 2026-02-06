@@ -23,12 +23,14 @@ interface NavigationState {
   commandPaletteOpen: boolean;
   whatsNewOpen: boolean;
   whatsNewVersion: string | null;  // null = show latest
+  onboardingOpen: boolean;
   detailContext: DetailContext | null;
   issuesExpandedSection: Section | null;
   setActiveSection: (section: Section) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
   setWhatsNewOpen: (open: boolean, version?: string | null) => void;
+  setOnboardingOpen: (open: boolean) => void;
   setDetailContext: (ctx: DetailContext | null) => void;
   navigateToIssues: (expandSection?: Section) => void;
 }
@@ -38,6 +40,7 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   commandPaletteOpen: false,
   whatsNewOpen: false,
   whatsNewVersion: null,
+  onboardingOpen: false,
   detailContext: null,
   issuesExpandedSection: null,
   setActiveSection: (section) => set({ activeSection: section, detailContext: null, issuesExpandedSection: null }),
@@ -45,6 +48,7 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   toggleCommandPalette: () =>
     set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
   setWhatsNewOpen: (open, version) => set({ whatsNewOpen: open, whatsNewVersion: version ?? null }),
+  setOnboardingOpen: (open) => set({ onboardingOpen: open }),
   setDetailContext: (ctx) => set({ detailContext: ctx }),
   navigateToIssues: (expandSection) => set({ activeSection: "issues", detailContext: null, issuesExpandedSection: expandSection ?? null }),
 }));
