@@ -3,6 +3,7 @@ import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { AppStatusBar } from "./app-status-bar";
 import { CommandPalette } from "./command-palette";
+import { WhatsNewModal } from "./whats-new-modal";
 import { useNavigationStore } from "@/stores/navigation";
 import { SectionSkeleton } from "@/components/shared/skeleton";
 
@@ -90,6 +91,7 @@ export function AppShell() {
       </div>
       <AppStatusBar />
       <CommandPalette />
+      <WhatsNewModal />
     </div>
   );
 }

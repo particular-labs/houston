@@ -6,7 +6,7 @@ mod scanners;
 mod state;
 
 use commands::{
-    action_cmds, ai_tools_cmds, claude_cmds, diagnostics_cmds, env_cmds, history_cmds,
+    action_cmds, ai_tools_cmds, changelog_cmds, claude_cmds, diagnostics_cmds, env_cmds, history_cmds,
     issue_cmds, language_cmds, package_cmds, project_cmds, settings_cmds, stats_cmds, system_cmds,
     workspace_cmds,
 };
@@ -74,6 +74,10 @@ pub fn run() {
             issue_cmds::update_issue_status,
             // Project Analysis
             project_cmds::analyze_project,
+            // Changelogs
+            changelog_cmds::get_changelogs,
+            changelog_cmds::get_changelog,
+            changelog_cmds::sync_changelog,
         ])
         .setup(|app| {
             use tauri::Manager;

@@ -38,6 +38,16 @@ pub struct IssueRow {
     pub last_seen: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChangelogRow {
+    pub version: String,
+    pub date: String,
+    pub title: String,
+    pub summary: String,
+    pub highlights: String,  // JSON array
+    pub sections: Option<String>,  // JSON array (optional)
+}
+
 /// Database wrapper with all persistence operations
 pub struct Database {
     conn: Connection,
@@ -72,6 +82,8 @@ impl Database {
         // Run migrations
         let migrations = Migrations::new(vec![
             M::up(include_str!("../migrations/001_initial.sql")),
+            M::up(include_str!("../migrations/002_changelogs.sql")),
+            M::up(include_str!("../migrations/003_changelog_summary.sql")),
         ]);
 
         migrations.to_latest(&mut conn)
@@ -361,6 +373,78 @@ impl Database {
             self.conn.execute(&sql, params.as_slice())
                 .map_err(|e| e.to_string())?;
         }
+        Ok(())
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Changelogs
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    pub fn get_all_changelogs(&self) -> Result<Vec<ChangelogRow>, String> {
+        let mut stmt = self.conn
+            .prepare("SELECT version, date, title, summary, highlights, sections FROM changelogs ORDER BY date DESC, version DESC")
+            .map_err(|e| e.to_string())?;
+
+        let rows = stmt.query_map([], |row| {
+            Ok(ChangelogRow {
+                version: row.get(0)?,
+                date: row.get(1)?,
+                title: row.get(2)?,
+                summary: row.get(3)?,
+                highlights: row.get(4)?,
+                sections: row.get(5)?,
+            })
+        }).map_err(|e| e.to_string())?;
+
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn get_changelog(&self, version: &str) -> Result<Option<ChangelogRow>, String> {
+        let mut stmt = self.conn
+            .prepare("SELECT version, date, title, summary, highlights, sections FROM changelogs WHERE version = ?1")
+            .map_err(|e| e.to_string())?;
+
+        let result = stmt.query_row(params![version], |row| {
+            Ok(ChangelogRow {
+                version: row.get(0)?,
+                date: row.get(1)?,
+                title: row.get(2)?,
+                summary: row.get(3)?,
+                highlights: row.get(4)?,
+                sections: row.get(5)?,
+            })
+        });
+
+        match result {
+            Ok(row) => Ok(Some(row)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    pub fn upsert_changelog(
+        &self,
+        version: &str,
+        date: &str,
+        title: &str,
+        summary: &str,
+        highlights: &str,
+        sections: Option<&str>,
+    ) -> Result<(), String> {
+        self.conn
+            .execute(
+                "INSERT INTO changelogs (version, date, title, summary, highlights, sections)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(version) DO UPDATE SET
+                    date = excluded.date,
+                    title = excluded.title,
+                    summary = excluded.summary,
+                    highlights = excluded.highlights,
+                    sections = excluded.sections",
+                params![version, date, title, summary, highlights, sections],
+            )
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 

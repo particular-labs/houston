@@ -186,6 +186,25 @@ export interface IssueRow {
   last_seen: string;
 }
 
+// Changelog types
+export interface ChangelogRow {
+  version: string;
+  date: string;
+  title: string;
+  summary: string;
+  highlights: string;  // JSON array
+  sections: string | null;  // JSON array (optional)
+}
+
+export interface ChangelogInput {
+  version: string;
+  date: string;
+  title: string;
+  summary: string;
+  highlights: string;  // JSON string
+  sections?: string;  // JSON string
+}
+
 // Project Analysis types
 export interface SizeInfo {
   bytes: number;
@@ -356,4 +375,11 @@ export const commands = {
   // Project Analysis
   analyzeProject: (projectPath: string) =>
     invoke<ProjectAnalysis>("analyze_project", { projectPath }),
+
+  // Changelogs
+  getChangelogs: () => invoke<ChangelogRow[]>("get_changelogs"),
+  getChangelog: (version: string) =>
+    invoke<ChangelogRow | null>("get_changelog", { version }),
+  syncChangelog: (changelog: ChangelogInput) =>
+    invoke<void>("sync_changelog", { changelog }),
 };

@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useTheme } from "@/hooks/use-theme";
 import { useSetting } from "@/hooks/use-settings";
+import { useWhatsNewCheck } from "@/hooks/use-whats-new";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,11 @@ function StartupSection() {
   return null;
 }
 
+function WhatsNewCheck() {
+  useWhatsNewCheck();
+  return null;
+}
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   return (
@@ -103,6 +109,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <StartupSection />
+        <WhatsNewCheck />
         <KeyboardShortcuts />
         <AppShell />
       </ThemeProvider>
