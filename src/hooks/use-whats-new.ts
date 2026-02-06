@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSetting, useSetSetting } from "@/hooks/use-settings";
 import { useNavigationStore } from "@/stores/navigation";
 import { syncChangelogsToDb, getChangelogFromDb } from "@/lib/changelogs";
@@ -8,6 +9,7 @@ export function useWhatsNewCheck() {
   const { data: lastSeenVersion, isLoading } = useSetting("last_seen_version");
   const setSetting = useSetSetting();
   const setWhatsNewOpen = useNavigationStore((s) => s.setWhatsNewOpen);
+  const queryClient = useQueryClient();
   const checkedRef = useRef(false);
 
   useEffect(() => {
@@ -18,6 +20,9 @@ export function useWhatsNewCheck() {
       try {
         // Sync static changelogs to DB on every startup
         await syncChangelogsToDb();
+
+        // Invalidate changelogs query to pick up synced data
+        queryClient.invalidateQueries({ queryKey: ["changelogs"] });
 
         const currentVersion = await getVersion();
 
@@ -46,5 +51,5 @@ export function useWhatsNewCheck() {
     }
 
     checkVersion();
-  }, [lastSeenVersion, isLoading, setSetting, setWhatsNewOpen]);
+  }, [lastSeenVersion, isLoading, setSetting, setWhatsNewOpen, queryClient]);
 }

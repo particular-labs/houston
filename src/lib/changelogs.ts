@@ -17,6 +17,24 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.7.2",
+    date: "2026-02-06",
+    title: "Release Notes Display Fix",
+    summary: "Fixed an issue where release notes weren't loading in the Settings tab.",
+    highlights: [
+      "Fixed release notes not appearing in Settings",
+    ],
+    sections: [
+      {
+        title: "Bug Fixes",
+        items: [
+          "Fixed race condition where changelog data wasn't loaded before display",
+          "Invalidate changelog query after syncing data to database",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.7.1",
     date: "2026-02-06",
     title: "Database Migration Fix",
