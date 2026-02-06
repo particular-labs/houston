@@ -146,6 +146,14 @@
       text-align: center;
     }
 
+    .hero-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(91, 124, 255, 0.3);
+    }
+
     .hero-wordmark {
       font-size: 56px;
       font-weight: 700;
@@ -389,6 +397,100 @@
       height: 600px;
       background: radial-gradient(circle, rgba(91, 124, 255, 0.08) 0%, transparent 70%);
       pointer-events: none;
+    }
+
+    /* ---------- Gallery ---------- */
+    .gallery {
+      border-top: 1px solid var(--border);
+    }
+
+    .gallery-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .gallery-tab {
+      padding: 10px 20px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--fg-muted);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .gallery-tab:hover {
+      border-color: #3a3a4a;
+      color: var(--fg);
+    }
+
+    .gallery-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .gallery-screens {
+      position: relative;
+      min-height: 600px;
+    }
+
+    .gallery-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .gallery-screen.active {
+      position: relative;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .gallery-image-wrapper {
+      max-width: 900px;
+      margin: 0 auto 24px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(91, 124, 255, 0.05),
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .gallery-image-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .gallery-caption {
+      text-align: center;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .gallery-caption h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .gallery-caption p {
+      font-size: 14px;
+      color: var(--fg-muted);
+      line-height: 1.6;
     }
 
     /* ---------- Features ---------- */
@@ -650,6 +752,15 @@
         flex-direction: column;
         text-align: center;
       }
+
+      .gallery-tabs {
+        gap: 6px;
+      }
+
+      .gallery-tab {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -691,6 +802,7 @@
     <div class="container">
       <a href="#" class="nav-brand">Houston</a>
       <ul class="nav-links">
+        <li><a href="#gallery" class="nav-link-text">Tour</a></li>
         <li><a href="#features" class="nav-link-text">Features</a></li>
         <li><a href="#stack" class="nav-link-text">Stack</a></li>
         <li>
@@ -706,6 +818,7 @@
   <!-- Hero -->
   <section class="hero">
     <div class="container">
+      <img src="https://raw.githubusercontent.com/particular-labs/houston/main/src-tauri/icons/128x128.png" alt="Houston logo" class="hero-logo">
       <h1 class="hero-wordmark">Houston</h1>
       <p class="hero-tagline">Dev Mission Control</p>
       <p class="hero-description">
@@ -734,6 +847,71 @@
       <div class="screenshot-wrapper">
         <div class="screenshot-glow"></div>
         <img src="screenshots/dashboard.png" alt="Houston dashboard showing system overview, detected languages, and workspace projects" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshot Gallery -->
+  <section class="gallery" id="gallery">
+    <div class="container">
+      <p class="section-label">Tour</p>
+      <h2 class="section-title">See it in action</h2>
+      <p class="section-subtitle">Explore every corner of your dev environment with purpose-built screens.</p>
+
+      <div class="gallery-tabs">
+        <button class="gallery-tab active" data-screen="dashboard">Dashboard</button>
+        <button class="gallery-tab" data-screen="system">System</button>
+        <button class="gallery-tab" data-screen="projects">Projects</button>
+        <button class="gallery-tab" data-screen="tools">Tools</button>
+        <button class="gallery-tab" data-screen="issues">Issues</button>
+      </div>
+
+      <div class="gallery-screens">
+        <div class="gallery-screen active" data-screen="dashboard">
+          <div class="gallery-image-wrapper">
+            <img src="screenshots/dashboard.png" alt="Dashboard view" loading="lazy">
+          </div>
+          <div class="gallery-caption">
+            <h3>Dashboard</h3>
+            <p>Your dev environment at a glance. Health status, detected languages, recent projects, and quick access to everything.</p>
+          </div>
+        </div>
+        <div class="gallery-screen" data-screen="system">
+          <div class="gallery-image-wrapper">
+            <img src="screenshots/system.png" alt="System information view" loading="lazy">
+          </div>
+          <div class="gallery-caption">
+            <h3>System Info</h3>
+            <p>OS details, shell configuration, Homebrew status, and hardware specs. Know exactly what you're running on.</p>
+          </div>
+        </div>
+        <div class="gallery-screen" data-screen="projects">
+          <div class="gallery-image-wrapper">
+            <img src="screenshots/projects.png" alt="Projects and workspaces view" loading="lazy">
+          </div>
+          <div class="gallery-caption">
+            <h3>Projects &amp; Workspaces</h3>
+            <p>All your repos in one place. Framework detection, git status, and one-click open in your editor or terminal.</p>
+          </div>
+        </div>
+        <div class="gallery-screen" data-screen="tools">
+          <div class="gallery-image-wrapper">
+            <img src="screenshots/tools.png" alt="Tools configuration view" loading="lazy">
+          </div>
+          <div class="gallery-caption">
+            <h3>Tools</h3>
+            <p>See your Claude Code setup, MCP servers, and AI tooling configuration. Everything in one view.</p>
+          </div>
+        </div>
+        <div class="gallery-screen" data-screen="issues">
+          <div class="gallery-image-wrapper">
+            <img src="screenshots/issues.png" alt="Issues view with diagnostics" loading="lazy">
+          </div>
+          <div class="gallery-caption">
+            <h3>Issues</h3>
+            <p>Centralized diagnostics with one-click fixes. Houston finds problems and helps you solve them fast.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1172,6 +1350,37 @@
         document.addEventListener('DOMContentLoaded', fetchLatestRelease);
       } else {
         fetchLatestRelease();
+      }
+    })();
+
+    // Gallery tab switching
+    (function() {
+      function initGallery() {
+        const tabs = document.querySelectorAll('.gallery-tab');
+        const screens = document.querySelectorAll('.gallery-screen');
+
+        tabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            const screen = tab.dataset.screen;
+
+            // Update active tab
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // Update active screen
+            screens.forEach(s => s.classList.remove('active'));
+            const activeScreen = document.querySelector(`.gallery-screen[data-screen="${screen}"]`);
+            if (activeScreen) {
+              activeScreen.classList.add('active');
+            }
+          });
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initGallery);
+      } else {
+        initGallery();
       }
     })();
   </script>

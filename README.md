@@ -1,8 +1,19 @@
-# Houston
+<p align="center">
+  <img src="src-tauri/icons/128x128.png" alt="Houston logo" width="80" height="80">
+</p>
 
-A lightweight desktop app for inspecting your local development environment. Built with Tauri 2.0, React 19, and TypeScript.
+<h1 align="center">Houston</h1>
 
-Houston gives you a single dashboard to see your PATH, language runtimes, environment variables, workspace git status, global packages, and CLI tool configs &mdash; things you'd otherwise piece together from a dozen terminal commands.
+<p align="center">
+  <strong>Dev Mission Control</strong><br>
+  A lightweight desktop app for inspecting your local development environment.
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Houston Dashboard" width="800">
+</p>
+
+Built with Tauri 2.0, React 19, and TypeScript. Houston gives you a single dashboard to see your PATH, language runtimes, environment variables, workspace git status, global packages, and CLI tool configs — things you'd otherwise piece together from a dozen terminal commands.
 
 ## Features
 
@@ -14,9 +25,13 @@ Houston gives you a single dashboard to see your PATH, language runtimes, enviro
 
 **Environment Variables** &mdash; All env vars categorized (Path, Language, Shell, Cloud, Git/SSH, Sensitive) with search. Sensitive values are automatically masked.
 
-**Workspace Manager** &mdash; Point Houston at your project directories. It scans for projects by marker files (package.json, Cargo.toml, go.mod, etc.), detects frameworks (Next.js, Django, Tauri, Astro, etc.), and shows package manager info.
+**Workspace Manager** — Point Houston at your project directories. It scans for projects by marker files (package.json, Cargo.toml, go.mod, etc.), detects frameworks (Next.js, Django, Tauri, Astro, etc.), and shows package manager info.
 
-**Git Awareness** &mdash; Per-project branch, dirty state, modified/untracked/staged counts, ahead/behind remote, and last commit info.
+<p align="center">
+  <img src="docs/screenshots/projects.png" alt="Houston Projects" width="800">
+</p>
+
+**Git Awareness** — Per-project branch, dirty state, modified/untracked/staged counts, ahead/behind remote, and last commit info.
 
 **Global Packages** &mdash; Tabbed view of npm global, Homebrew, pip, and Cargo installed packages with search.
 
