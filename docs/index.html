@@ -1416,6 +1416,26 @@
       }
     })();
 
+    // Navigation link tracking
+    (function() {
+      function initNavTracking() {
+        document.querySelectorAll('.nav-links a:not(.nav-github)').forEach(link => {
+          link.addEventListener('click', () => {
+            if (typeof umami !== 'undefined') {
+              const section = link.getAttribute('href').replace('#', '');
+              umami.track('nav-click', { section: section });
+            }
+          });
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initNavTracking);
+      } else {
+        initNavTracking();
+      }
+    })();
+
     // Outbound link tracking
     (function() {
       function initOutboundTracking() {
@@ -1447,7 +1467,9 @@
                 location = 'footer';
               }
 
-              umami.track('outbound-click', { type: linkType, location: location, url: link.href });
+              // Use clean URL without query params for privacy
+              const cleanUrl = url.origin + url.pathname;
+              umami.track('outbound-click', { type: linkType, location: location, url: cleanUrl });
             }
           });
         });
@@ -1473,6 +1495,7 @@
         };
 
         const trackedSections = new Set();
+        const totalSections = Object.values(sections).filter(s => s).length;
 
         const observer = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
@@ -1481,11 +1504,17 @@
               if (!trackedSections.has(sectionId)) {
                 trackedSections.add(sectionId);
                 umami.track('section-view', { section: sectionId });
+
+                // Disconnect observer once all sections have been tracked
+                if (trackedSections.size === totalSections) {
+                  observer.disconnect();
+                }
               }
             }
           });
         }, {
-          threshold: 0.3 // Trigger when 30% of section is visible
+          threshold: 0.3,
+          rootMargin: '0px 0px -100px 0px' // Trigger slightly before fully visible
         });
 
         Object.values(sections).forEach(section => {
