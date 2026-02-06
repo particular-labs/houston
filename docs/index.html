@@ -1424,8 +1424,9 @@
             if (typeof umami !== 'undefined') {
               const url = new URL(link.href);
               const path = url.pathname;
-              let linkType = 'github-other';
 
+              // Determine link type
+              let linkType = 'github-other';
               if (path.includes('/releases')) {
                 linkType = 'github-releases';
               } else if (path === '/particular-labs/houston' || path === '/particular-labs/houston/') {
@@ -1434,7 +1435,19 @@
                 linkType = 'github-org';
               }
 
-              umami.track('outbound-click', { type: linkType, url: link.href });
+              // Determine location on page
+              let location = 'other';
+              if (link.closest('nav')) {
+                location = 'nav';
+              } else if (link.closest('.hero')) {
+                location = 'hero';
+              } else if (link.closest('.cta')) {
+                location = 'cta';
+              } else if (link.closest('footer')) {
+                location = 'footer';
+              }
+
+              umami.track('outbound-click', { type: linkType, location: location, url: link.href });
             }
           });
         });
