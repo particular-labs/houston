@@ -17,6 +17,24 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.7.1",
+    date: "2026-02-06",
+    title: "Database Migration Fix",
+    summary: "Hotfix for a crash on startup when upgrading from previous versions.",
+    highlights: [
+      "Fixed crash on startup caused by duplicate database column",
+    ],
+    sections: [
+      {
+        title: "Bug Fixes",
+        items: [
+          "Fixed database migration error that caused app to crash on launch",
+          "Corrected migration order for changelogs table schema",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.7.0",
     date: "2026-02-06",
     title: "What's New & Settings Overhaul",
