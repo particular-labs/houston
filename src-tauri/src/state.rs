@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -105,11 +106,13 @@ pub struct AppStatsSnapshot {
     pub memory_bytes: u64,
 }
 
+use serde::Serialize as SerializeTrait;
+
 use crate::db::Database;
 use crate::scanners::{
     ai_tools::AiToolsReport, claude::ClaudeConfig, diagnostics::DiagnosticReport,
-    environment::EnvVarInfo, git::GitStatus, languages::LanguageInfo, packages::PackageList,
-    path::PathEntry, system::SystemInfo, workspace::ProjectInfo,
+    docker::DockerStatus, environment::EnvVarInfo, git::GitStatus, languages::LanguageInfo,
+    packages::PackageList, path::PathEntry, system::SystemInfo, workspace::ProjectInfo,
 };
 
 pub struct AppState {
@@ -125,6 +128,7 @@ pub struct AppState {
     pub claude_cache: Mutex<ScanCache<ClaudeConfig>>,
     pub diagnostics_cache: Mutex<ScanCache<DiagnosticReport>>,
     pub ai_tools_cache: Mutex<ScanCache<AiToolsReport>>,
+    pub docker_cache: Mutex<ScanCache<DockerStatus>>,
     // Per-scanner stats
     pub system_stats: ScanStats,
     pub path_stats: ScanStats,
@@ -136,6 +140,11 @@ pub struct AppState {
     pub claude_stats: ScanStats,
     pub diagnostics_stats: ScanStats,
     pub ai_tools_stats: ScanStats,
+    pub docker_stats: ScanStats,
+    // Docker fingerprint for conditional DB writes (running_count, stopped_count)
+    pub docker_fingerprint: Mutex<Option<(usize, usize)>>,
+    // Throttle scan record writes: scanner_name → last write instant
+    pub scan_record_timestamps: Mutex<HashMap<String, Instant>>,
     // App-level
     pub startup_instant: Instant,
 }
@@ -152,16 +161,17 @@ impl AppState {
         };
 
         // Read TTL overrides from database
-        let ttl_system = get_ttl("ttl_system", 300);
-        let ttl_path = get_ttl("ttl_path", 60);
-        let ttl_languages = get_ttl("ttl_languages", 120);
-        let ttl_env = get_ttl("ttl_env", 60);
-        let ttl_projects = get_ttl("ttl_projects", 60);
-        let ttl_git = get_ttl("ttl_git", 30);
-        let ttl_packages = get_ttl("ttl_packages", 300);
-        let ttl_claude = get_ttl("ttl_claude", 300);
-        let ttl_diagnostics = get_ttl("ttl_diagnostics", 120);
-        let ttl_ai_tools = get_ttl("ttl_ai_tools", 120);
+        let ttl_system = get_ttl("ttl_system", 3600);
+        let ttl_path = get_ttl("ttl_path", 3600);
+        let ttl_languages = get_ttl("ttl_languages", 600);
+        let ttl_env = get_ttl("ttl_env", 3600);
+        let ttl_projects = get_ttl("ttl_projects", 300);
+        let ttl_git = get_ttl("ttl_git", 60);
+        let ttl_packages = get_ttl("ttl_packages", 600);
+        let ttl_claude = get_ttl("ttl_claude", 600);
+        let ttl_diagnostics = get_ttl("ttl_diagnostics", 600);
+        let ttl_ai_tools = get_ttl("ttl_ai_tools", 600);
+        let ttl_docker = get_ttl("ttl_docker", 15);
 
         // Hydrate workspace paths from database
         let workspace_paths = db.get_workspaces().unwrap_or_default();
@@ -179,6 +189,7 @@ impl AppState {
             claude_cache: Mutex::new(ScanCache::new(ttl_claude)),
             diagnostics_cache: Mutex::new(ScanCache::new(ttl_diagnostics)),
             ai_tools_cache: Mutex::new(ScanCache::new(ttl_ai_tools)),
+            docker_cache: Mutex::new(ScanCache::new(ttl_docker)),
             system_stats: ScanStats::new(),
             path_stats: ScanStats::new(),
             language_stats: ScanStats::new(),
@@ -189,7 +200,30 @@ impl AppState {
             claude_stats: ScanStats::new(),
             diagnostics_stats: ScanStats::new(),
             ai_tools_stats: ScanStats::new(),
+            docker_stats: ScanStats::new(),
+            docker_fingerprint: Mutex::new(None),
+            scan_record_timestamps: Mutex::new(HashMap::new()),
             startup_instant: Instant::now(),
         }
+    }
+
+    /// Write a scan record to the DB only if at least 5 minutes have passed
+    /// since the last write for this scanner. Refresh commands bypass throttling.
+    pub fn throttled_record_scan<T: SerializeTrait>(&self, scanner: &str, data: &T) {
+        let min_interval = Duration::from_secs(300); // 5 minutes
+        let mut timestamps = self.scan_record_timestamps.lock().unwrap();
+        let now = Instant::now();
+
+        if let Some(last) = timestamps.get(scanner) {
+            if now.duration_since(*last) < min_interval {
+                return;
+            }
+        }
+
+        timestamps.insert(scanner.to_string(), now);
+        drop(timestamps);
+
+        let db = self.db.lock().unwrap();
+        let _ = db.record_scan(scanner, data);
     }
 }

@@ -86,6 +86,10 @@ pub fn get_app_stats(state: State<'_, AppState>) -> AppStatsSnapshot {
             let c = state.ai_tools_cache.lock().unwrap();
             snapshot_scanner("AI Tools", &state.ai_tools_stats, c.ttl_secs(), c.is_warm())
         },
+        {
+            let c = state.docker_cache.lock().unwrap();
+            snapshot_scanner("Docker", &state.docker_stats, c.ttl_secs(), c.is_warm())
+        },
     ];
 
     AppStatsSnapshot {

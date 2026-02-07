@@ -457,4 +457,14 @@ impl Database {
             .query_row("SELECT COUNT(*) FROM scan_history", [], |row| row.get(0))
             .map_err(|e| e.to_string())
     }
+
+    pub fn get_open_issue_count(&self) -> Result<i64, String> {
+        self.conn
+            .query_row(
+                "SELECT COUNT(*) FROM issues WHERE status = 'open'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())
+    }
 }

@@ -1,9 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
 import { useWorkspaceStore } from "@/stores/workspaces";
-
-// Workspace paths are now persisted in SQLite by the backend
-// No localStorage needed - backend self-hydrates from DB at startup
+import { useSmartQuery } from "./use-smart-query";
 
 export function useWorkspacePaths() {
   const setPaths = useWorkspaceStore((s) => s.setPaths);
@@ -18,10 +16,11 @@ export function useWorkspacePaths() {
 }
 
 export function useProjects() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["projects"],
     queryFn: commands.scanProjects,
-    staleTime: 60_000,
+    activeStaleTime: 300_000,
+    hiddenStaleTime: Infinity,
   });
 }
 

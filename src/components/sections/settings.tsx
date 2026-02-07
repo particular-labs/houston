@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useAppStats } from "@/hooks/use-app-stats";
 import { SectionHeader } from "@/components/shared/section-header";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -643,8 +643,8 @@ export function SettingsSection() {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
+          <InfoCardSkeleton />
+          <InfoCardSkeleton />
         </div>
       </div>
     );

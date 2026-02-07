@@ -1,9 +1,11 @@
 pub mod ai_tools;
 pub mod claude;
 pub mod diagnostics;
+pub mod docker;
 pub mod environment;
 pub mod git;
 pub mod languages;
+pub mod outdated_cache;
 pub mod packages;
 pub mod path;
 pub mod project_analysis;

@@ -7,6 +7,7 @@ export type Section =
   | "languages"
   | "environment"
   | "workspaces"
+  | "containers"
   | "packages"
   | "tools"
   | "settings"
@@ -16,7 +17,9 @@ export type DetailContext =
   | { type: "project-group"; groupName: string; label: string }
   | { type: "monorepo-detail"; rootPath: string; label: string; parentGroupName: string }
   | { type: "tool-detail"; toolName: string; label: string }
-  | { type: "project-detail"; projectPath: string; projectName: string };
+  | { type: "project-detail"; projectPath: string; projectName: string }
+  | { type: "container-detail"; containerId: string; containerName: string }
+  | { type: "compose-project"; projectName: string };
 
 interface NavigationState {
   activeSection: Section;

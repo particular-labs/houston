@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
+import { useSmartQuery } from "./use-smart-query";
 
 export function useGlobalPackages() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["global-packages"],
     queryFn: commands.getPackages,
-    staleTime: 300_000,
+    activeStaleTime: 600_000,
+    hiddenStaleTime: Infinity,
   });
 }

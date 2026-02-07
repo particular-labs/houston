@@ -17,6 +17,48 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.9.0",
+    date: "2026-02-07",
+    title: "Performance Overhaul",
+    summary: "Dramatic reduction in CPU and memory usage when Houston is idle or running in the background.",
+    highlights: [
+      "Zero CPU usage when minimized — app fully idles after 5 minutes hidden",
+      "60-70% fewer process spawns during active use",
+      "Shared package cache eliminates duplicate brew/npm/pip outdated calls",
+    ],
+    sections: [
+      {
+        title: "New Features",
+        items: [
+          "Visibility-aware polling pauses all scanning when app is hidden",
+          "Smart query system with tiered intervals: active, hidden, and deep idle",
+          "Lightweight issue count for sidebar instead of full diagnostic scan",
+        ],
+      },
+      {
+        title: "Improvements",
+        items: [
+          "Docker scanner skips expensive stats query when no containers are running",
+          "Docker DB writes use fingerprinting — only records when container state changes",
+          "Backend TTLs increased across all scanners for stable data (system, PATH, env: 1hr)",
+          "SQLite write throttling prevents scan history bloat (5-min minimum between writes)",
+          "Shared outdated package cache with 10-minute TTL used by diagnostics and AI tools",
+          "Sidebar no longer drives Docker or diagnostics polling",
+        ],
+      },
+      {
+        title: "Technical",
+        items: [
+          "New use-visibility hook tracks document.visibilityState + Tauri focus events",
+          "New use-smart-query hook wraps TanStack Query with visibility awareness",
+          "New outdated_cache.rs module deduplicates brew/npm/pip outdated queries",
+          "All data hooks migrated from useQuery to useSmartQuery",
+          "refetchOnWindowFocus enabled for instant data refresh when returning to app",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.8.0",
     date: "2026-02-06",
     title: "Onboarding & Reliable Updates",

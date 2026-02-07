@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
+import { useSmartQuery } from "./use-smart-query";
 
 export function useAiTools() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["ai-tools"],
     queryFn: commands.getAiTools,
-    staleTime: 120_000,
+    activeStaleTime: 600_000,
+    hiddenStaleTime: Infinity,
   });
 }

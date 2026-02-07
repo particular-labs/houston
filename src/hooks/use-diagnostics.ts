@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
+import { useSmartQuery } from "./use-smart-query";
 
 export function useDiagnostics() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["diagnostics"],
     queryFn: commands.getDiagnostics,
-    staleTime: 120_000,
+    activeStaleTime: 600_000,
+    hiddenStaleTime: Infinity,
   });
 }

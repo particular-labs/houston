@@ -21,9 +21,7 @@ pub fn get_ai_tools(state: State<'_, AppState>) -> ai_tools::AiToolsReport {
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(report.clone());
     drop(cache);
-    // Record scan history
-    let db = state.db.lock().unwrap();
-    let _ = db.record_scan("ai_tools", &report);
+    state.throttled_record_scan("ai_tools", &report);
     report
 }
 

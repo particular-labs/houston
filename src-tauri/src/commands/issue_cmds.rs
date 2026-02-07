@@ -3,6 +3,12 @@ use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
+pub fn get_issue_count(state: State<'_, AppState>) -> Result<i64, String> {
+    let db = state.db.lock().unwrap();
+    db.get_open_issue_count()
+}
+
+#[tauri::command]
 pub fn get_issues(
     state: State<'_, AppState>,
     status: Option<String>,

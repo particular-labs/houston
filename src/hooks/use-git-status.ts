@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
 import { useProjects } from "@/hooks/use-workspaces";
+import { useSmartQuery } from "./use-smart-query";
 
 export function useGitStatus(projectPath: string) {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["git-status", projectPath],
     queryFn: () => commands.getGitStatus(projectPath),
-    staleTime: 30_000,
+    activeStaleTime: 60_000,
+    hiddenStaleTime: Infinity,
     enabled: !!projectPath,
   });
 }
@@ -15,10 +16,11 @@ export function useAllGitStatuses() {
   const { data: projects } = useProjects();
   const hasGitProjects = (projects ?? []).some((p) => p.has_git);
 
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["all-git-statuses"],
     queryFn: commands.getAllGitStatuses,
-    staleTime: 30_000,
+    activeStaleTime: 60_000,
+    hiddenStaleTime: Infinity,
     enabled: hasGitProjects,
   });
 }

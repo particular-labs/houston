@@ -273,6 +273,48 @@ export interface ProjectAnalysis {
   analyzed_at: string;
 }
 
+// Docker types
+export interface PortBinding {
+  host_port: number | null;
+  container_port: number;
+  protocol: string;
+}
+
+export interface ContainerInfo {
+  id: string;
+  name: string;
+  image: string;
+  status: string;       // "running", "paused", "exited", "created"
+  state_detail: string; // "Up 2 hours", "Exited (0) 5 mins ago"
+  created: string;
+  ports: PortBinding[];
+  cpu_percent: number;
+  memory_bytes: number;
+  memory_limit: number;
+  service_name: string;
+  category: string;     // database, cache, queue, proxy, webapp, monitoring, service, unknown
+  icon: string;
+  compose_project: string | null;
+  compose_service: string | null;
+}
+
+export interface ComposeProject {
+  name: string;
+  container_count: number;
+  running_count: number;
+  containers: string[];
+}
+
+export interface DockerStatus {
+  available: boolean;
+  version: string | null;
+  containers: ContainerInfo[];
+  compose_projects: ComposeProject[];
+  total_running: number;
+  total_stopped: number;
+  scanned_at: string;
+}
+
 // Stats types
 export interface ScannerStatsSnapshot {
   name: string;
@@ -365,6 +407,7 @@ export const commands = {
     invoke<ScanHistoryRow | null>("get_latest_scan", { scanner }),
 
   // Issues
+  getIssueCount: () => invoke<number>("get_issue_count"),
   getIssues: (status?: string) =>
     invoke<IssueRow[]>("get_issues", { status }),
   dismissIssue: (diagnosticId: string) =>
@@ -382,4 +425,16 @@ export const commands = {
     invoke<ChangelogRow | null>("get_changelog", { version }),
   syncChangelog: (changelog: ChangelogInput) =>
     invoke<void>("sync_changelog", { changelog }),
+
+  // Docker
+  getDockerStatus: () => invoke<DockerStatus>("get_docker_status"),
+  refreshDockerStatus: () => invoke<DockerStatus>("refresh_docker_status"),
+  startDockerContainer: (containerId: string) =>
+    invoke<void>("start_docker_container", { containerId }),
+  stopDockerContainer: (containerId: string) =>
+    invoke<void>("stop_docker_container", { containerId }),
+  restartDockerContainer: (containerId: string) =>
+    invoke<void>("restart_docker_container", { containerId }),
+  getDockerContainerLogs: (containerId: string, tail?: number) =>
+    invoke<string[]>("get_docker_container_logs", { containerId, tail }),
 };

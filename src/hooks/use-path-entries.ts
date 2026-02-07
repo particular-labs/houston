@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
+import { useSmartQuery } from "./use-smart-query";
 
 export function usePathEntries() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["path-entries"],
     queryFn: commands.getPathEntries,
-    staleTime: 60_000,
+    activeStaleTime: 3_600_000,
+    hiddenStaleTime: Infinity,
   });
 }

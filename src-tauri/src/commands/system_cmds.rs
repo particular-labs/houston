@@ -21,9 +21,7 @@ pub fn get_system_info(state: State<'_, AppState>) -> system::SystemInfo {
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(info.clone());
     drop(cache);
-    // Record scan history
-    let db = state.db.lock().unwrap();
-    let _ = db.record_scan("system", &info);
+    state.throttled_record_scan("system", &info);
     info
 }
 
@@ -45,9 +43,7 @@ pub fn get_path_entries(state: State<'_, AppState>) -> Vec<path::PathEntry> {
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(entries.clone());
     drop(cache);
-    // Record scan history
-    let db = state.db.lock().unwrap();
-    let _ = db.record_scan("path", &entries);
+    state.throttled_record_scan("path", &entries);
     entries
 }
 

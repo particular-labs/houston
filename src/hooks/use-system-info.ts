@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
+import { useSmartQuery } from "./use-smart-query";
 
 export function useSystemInfo() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["system-info"],
     queryFn: commands.getSystemInfo,
-    staleTime: 300_000,
+    activeStaleTime: 3_600_000,
+    hiddenStaleTime: Infinity,
   });
 }

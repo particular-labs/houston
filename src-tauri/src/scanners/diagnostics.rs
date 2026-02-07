@@ -90,118 +90,104 @@ fn check_outdated_brew() -> Vec<DiagnosticItem> {
         return Vec::new();
     }
 
-    let output = Command::new("brew").args(["outdated", "--json"]).output();
-
-    match output {
-        Ok(o) if o.status.success() => {
-            let stdout = String::from_utf8_lossy(&o.stdout);
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                if let Some(formulae) = json.get("formulae").and_then(|f| f.as_array()) {
-                    return formulae
-                        .iter()
-                        .filter_map(|pkg| {
-                            let name = pkg.get("name")?.as_str()?;
-                            let current = pkg
-                                .get("installed_versions")
-                                .and_then(|v| v.as_array())
-                                .and_then(|a| a.first())
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("?");
-                            let latest = pkg
-                                .get("current_version")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("?");
-                            Some(DiagnosticItem {
-                                id: format!("brew_outdated_{}", name),
-                                category: "packages".to_string(),
-                                severity: Severity::Warning,
-                                title: format!("{} is outdated", name),
-                                description: format!("Installed: {}, Latest: {}", current, latest),
-                                details: None,
-                                fix_id: Some(format!("brew_upgrade:{}", name)),
-                                fix_label: Some(format!("Upgrade {}", name)),
-                            })
-                        })
-                        .collect();
-                }
-            }
-            Vec::new()
-        }
-        _ => Vec::new(),
+    let json = super::outdated_cache::brew_outdated_json();
+    if json.is_null() {
+        return Vec::new();
     }
+
+    if let Some(formulae) = json.get("formulae").and_then(|f| f.as_array()) {
+        return formulae
+            .iter()
+            .filter_map(|pkg| {
+                let name = pkg.get("name")?.as_str()?;
+                let current = pkg
+                    .get("installed_versions")
+                    .and_then(|v| v.as_array())
+                    .and_then(|a| a.first())
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("?");
+                let latest = pkg
+                    .get("current_version")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("?");
+                Some(DiagnosticItem {
+                    id: format!("brew_outdated_{}", name),
+                    category: "packages".to_string(),
+                    severity: Severity::Warning,
+                    title: format!("{} is outdated", name),
+                    description: format!("Installed: {}, Latest: {}", current, latest),
+                    details: None,
+                    fix_id: Some(format!("brew_upgrade:{}", name)),
+                    fix_label: Some(format!("Upgrade {}", name)),
+                })
+            })
+            .collect();
+    }
+
+    Vec::new()
 }
 
 fn check_outdated_npm() -> Vec<DiagnosticItem> {
-    let output = Command::new("npm")
-        .args(["outdated", "-g", "--json"])
-        .output();
-
-    match output {
-        Ok(o) => {
-            let stdout = String::from_utf8_lossy(&o.stdout);
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                if let Some(obj) = json.as_object() {
-                    return obj
-                        .iter()
-                        .filter_map(|(name, info)| {
-                            let current =
-                                info.get("current").and_then(|v| v.as_str()).unwrap_or("?");
-                            let latest = info.get("latest").and_then(|v| v.as_str()).unwrap_or("?");
-                            if current == latest {
-                                return None;
-                            }
-                            Some(DiagnosticItem {
-                                id: format!("npm_outdated_{}", name),
-                                category: "packages".to_string(),
-                                severity: Severity::Warning,
-                                title: format!("{} is outdated", name),
-                                description: format!("Installed: {}, Latest: {}", current, latest),
-                                details: None,
-                                fix_id: Some(format!("npm_update:{}", name)),
-                                fix_label: Some(format!("Update {}", name)),
-                            })
-                        })
-                        .collect();
-                }
-            }
-            Vec::new()
-        }
-        _ => Vec::new(),
+    let json = super::outdated_cache::npm_outdated_json();
+    if json.is_null() {
+        return Vec::new();
     }
+
+    if let Some(obj) = json.as_object() {
+        return obj
+            .iter()
+            .filter_map(|(name, info)| {
+                let current =
+                    info.get("current").and_then(|v| v.as_str()).unwrap_or("?");
+                let latest = info.get("latest").and_then(|v| v.as_str()).unwrap_or("?");
+                if current == latest {
+                    return None;
+                }
+                Some(DiagnosticItem {
+                    id: format!("npm_outdated_{}", name),
+                    category: "packages".to_string(),
+                    severity: Severity::Warning,
+                    title: format!("{} is outdated", name),
+                    description: format!("Installed: {}, Latest: {}", current, latest),
+                    details: None,
+                    fix_id: Some(format!("npm_update:{}", name)),
+                    fix_label: Some(format!("Update {}", name)),
+                })
+            })
+            .collect();
+    }
+
+    Vec::new()
 }
 
 fn check_outdated_pip() -> Vec<DiagnosticItem> {
-    let output = Command::new("pip3")
-        .args(["list", "--outdated", "--format=json"])
-        .output();
-
-    match output {
-        Ok(o) if o.status.success() => {
-            let stdout = String::from_utf8_lossy(&o.stdout);
-            if let Ok(packages) = serde_json::from_str::<Vec<serde_json::Value>>(&stdout) {
-                return packages
-                    .iter()
-                    .filter_map(|pkg| {
-                        let name = pkg.get("name")?.as_str()?;
-                        let current = pkg.get("version")?.as_str()?;
-                        let latest = pkg.get("latest_version")?.as_str()?;
-                        Some(DiagnosticItem {
-                            id: format!("pip_outdated_{}", name),
-                            category: "packages".to_string(),
-                            severity: Severity::Info,
-                            title: format!("{} is outdated", name),
-                            description: format!("Installed: {}, Latest: {}", current, latest),
-                            details: None,
-                            fix_id: Some(format!("pip_upgrade:{}", name)),
-                            fix_label: Some(format!("Upgrade {}", name)),
-                        })
-                    })
-                    .collect();
-            }
-            Vec::new()
-        }
-        _ => Vec::new(),
+    let json = super::outdated_cache::pip_outdated_json();
+    if json.is_null() {
+        return Vec::new();
     }
+
+    if let Some(packages) = json.as_array() {
+        return packages
+            .iter()
+            .filter_map(|pkg| {
+                let name = pkg.get("name")?.as_str()?;
+                let current = pkg.get("version")?.as_str()?;
+                let latest = pkg.get("latest_version")?.as_str()?;
+                Some(DiagnosticItem {
+                    id: format!("pip_outdated_{}", name),
+                    category: "packages".to_string(),
+                    severity: Severity::Info,
+                    title: format!("{} is outdated", name),
+                    description: format!("Installed: {}, Latest: {}", current, latest),
+                    details: None,
+                    fix_id: Some(format!("pip_upgrade:{}", name)),
+                    fix_label: Some(format!("Upgrade {}", name)),
+                })
+            })
+            .collect();
+    }
+
+    Vec::new()
 }
 
 fn check_brew_doctor() -> Vec<DiagnosticItem> {

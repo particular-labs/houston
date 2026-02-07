@@ -1,19 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { useEffect, useRef } from "react";
+import { createElement, useEffect, useRef } from "react";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useTheme } from "@/hooks/use-theme";
 import { useSetting } from "@/hooks/use-settings";
 import { useWhatsNewCheck } from "@/hooks/use-whats-new";
 import { useOnboardingCheck } from "@/hooks/use-onboarding";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
+import { VisibilityContext, useVisibilityState } from "@/hooks/use-visibility";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
     },
   },
 });
@@ -25,9 +26,10 @@ const sectionShortcuts: Record<string, Section> = {
   "4": "languages",
   "5": "environment",
   "6": "workspaces",
-  "7": "packages",
-  "8": "tools",
-  "9": "settings",
+  "7": "containers",
+  "8": "packages",
+  "9": "tools",
+  "0": "settings",
 };
 
 function KeyboardShortcuts() {
@@ -116,17 +118,24 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+function VisibilityProvider({ children }: { children: React.ReactNode }) {
+  const state = useVisibilityState();
+  return createElement(VisibilityContext.Provider, { value: state }, children);
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <StartupSection />
-        <WhatsNewCheck />
-        <OnboardingCheck />
-        <UpdateChecker />
-        <KeyboardShortcuts />
-        <AppShell />
-      </ThemeProvider>
+      <VisibilityProvider>
+        <ThemeProvider>
+          <StartupSection />
+          <WhatsNewCheck />
+          <OnboardingCheck />
+          <UpdateChecker />
+          <KeyboardShortcuts />
+          <AppShell />
+        </ThemeProvider>
+      </VisibilityProvider>
     </QueryClientProvider>
   );
 }

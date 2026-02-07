@@ -24,7 +24,7 @@ import type {
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ProjectDetailProps {
@@ -491,10 +491,10 @@ export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) 
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
+          <InfoCardSkeleton />
+          <InfoCardSkeleton />
+          <InfoCardSkeleton />
+          <InfoCardSkeleton />
         </div>
       ) : analysis ? (
         <div className="space-y-4">

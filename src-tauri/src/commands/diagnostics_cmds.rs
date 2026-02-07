@@ -41,11 +41,7 @@ pub fn get_diagnostics(state: State<'_, AppState>) -> diagnostics::DiagnosticRep
         .record_miss(start.elapsed().as_millis() as u64);
     cache.set(report.clone());
     drop(cache);
-    // Record scan history and sync issues
-    {
-        let db = state.db.lock().unwrap();
-        let _ = db.record_scan("diagnostics", &report);
-    }
+    state.throttled_record_scan("diagnostics", &report);
     sync_issues_to_db(&state, &report);
     report
 }

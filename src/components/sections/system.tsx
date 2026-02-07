@@ -10,7 +10,7 @@ import {
 import { useSystemInfo } from "@/hooks/use-system-info";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CopyButton } from "@/components/shared/copy-button";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { IssueLinkBadge } from "@/components/shared/issue-link-badge";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -46,8 +46,8 @@ export function SystemSection() {
       <div className="space-y-6">
         <SectionHeader title="System" description="OS, shell, and hardware information" />
         <div className="grid grid-cols-2 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
+          <InfoCardSkeleton />
+          <InfoCardSkeleton />
         </div>
       </div>
     );

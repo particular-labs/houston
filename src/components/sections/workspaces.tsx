@@ -31,7 +31,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusDot } from "@/components/shared/status-dot";
 import { CopyButton } from "@/components/shared/copy-button";
 import { EmptyState } from "@/components/shared/empty-state";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { ProjectCardSkeleton } from "@/components/shared/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCollapsibleSections } from "@/hooks/use-collapsible-sections";
@@ -509,8 +509,8 @@ function MonorepoWorktreeDetail({
 
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
+          <ProjectCardSkeleton />
+          <ProjectCardSkeleton />
         </div>
       ) : subfolderCategories.length > 0 ? (
         <SubfolderAccordion
@@ -751,10 +751,10 @@ export function WorkspacesSection() {
       {/* Project grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
+          <ProjectCardSkeleton />
+          <ProjectCardSkeleton />
+          <ProjectCardSkeleton />
+          <ProjectCardSkeleton />
         </div>
       ) : paginatedItems.length > 0 ? (
         <div className="grid grid-cols-2 gap-4">

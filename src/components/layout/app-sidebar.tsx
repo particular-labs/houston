@@ -6,6 +6,7 @@ import {
   Code2,
   Variable,
   FolderGit2,
+  Container,
   Package,
   Wrench,
   Settings,
@@ -22,8 +23,9 @@ import { cn } from "@/lib/utils";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useUpdateStore } from "@/stores/update";
 import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
-import { useIssuesBySection } from "@/hooks/use-issues-by-section";
+import { useIssueCount } from "@/hooks/use-issue-count";
 import { useProjects } from "@/hooks/use-workspaces";
+import { useDockerStatusCached } from "@/hooks/use-docker";
 
 interface NavItem {
   id: Section;
@@ -56,6 +58,7 @@ const navGroups: NavGroup[] = [
     title: "Workspace",
     items: [
       { id: "workspaces", label: "Projects", icon: FolderGit2 },
+      { id: "containers", label: "Containers", icon: Container },
     ],
   },
   {
@@ -74,9 +77,11 @@ export function AppSidebar() {
   const { data: settings } = useSettings();
   const setSetting = useSetSetting();
   const theme = getSettingValue(settings, "theme", "dark");
-  const { totalCount } = useIssuesBySection();
+  const { count: totalCount } = useIssueCount();
   const { data: projects } = useProjects();
+  const { data: dockerStatus } = useDockerStatusCached();
   const projectCount = projects?.length ?? 0;
+  const runningContainerCount = dockerStatus?.total_running ?? 0;
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -139,6 +144,7 @@ export function AppSidebar() {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
               const showProjectCount = item.id === "workspaces" && projectCount > 0;
+              const showContainerCount = item.id === "containers" && runningContainerCount > 0;
               return (
                 <button
                   key={item.id}
@@ -162,6 +168,11 @@ export function AppSidebar() {
                   {showProjectCount && (
                     <span className="ml-auto rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
                       {projectCount}
+                    </span>
+                  )}
+                  {showContainerCount && (
+                    <span className="ml-auto rounded-full bg-green-500/20 px-1.5 text-[10px] font-medium text-green-500">
+                      {runningContainerCount}
                     </span>
                   )}
                 </button>

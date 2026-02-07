@@ -15,7 +15,7 @@ import { useAllGitStatuses } from "@/hooks/use-git-status";
 import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
 import { StatusDot } from "@/components/shared/status-dot";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { StatCardSkeleton, InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useNavigationStore } from "@/stores/navigation";
 
 function MetricCard({
@@ -105,7 +105,7 @@ export function Dashboard() {
       {/* Metric cards — each renders independently */}
       <div className="grid grid-cols-5 gap-4">
         {systemLoading ? (
-          <CardSkeleton />
+          <StatCardSkeleton />
         ) : (
           <MetricCard
             icon={Monitor}
@@ -121,7 +121,7 @@ export function Dashboard() {
           />
         )}
         {pathsLoading ? (
-          <CardSkeleton />
+          <StatCardSkeleton />
         ) : (
           <MetricCard
             icon={Route}
@@ -137,7 +137,7 @@ export function Dashboard() {
           />
         )}
         {langsLoading ? (
-          <CardSkeleton />
+          <StatCardSkeleton />
         ) : (
           <MetricCard
             icon={Code2}
@@ -182,7 +182,7 @@ export function Dashboard() {
             System Overview
           </h3>
           {systemLoading ? (
-            <CardSkeleton />
+            <StatCardSkeleton />
           ) : system ? (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -226,7 +226,7 @@ export function Dashboard() {
             Installed Languages
           </h3>
           {langsLoading ? (
-            <CardSkeleton />
+            <StatCardSkeleton />
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {languages

@@ -3,7 +3,7 @@ import { useLanguages } from "@/hooks/use-languages";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function LanguagesSection() {
@@ -24,9 +24,9 @@ export function LanguagesSection() {
       {/* Installed */}
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
+          <InfoCardSkeleton rows={3} />
+          <InfoCardSkeleton rows={3} />
+          <InfoCardSkeleton rows={3} />
         </div>
       ) : (
         <>

@@ -23,6 +23,6 @@ pub fn is_enabled() -> bool {
 
 // Re-export mock data functions for convenience
 pub use data::{
-    mock_ai_tools, mock_diagnostics, mock_env_vars, mock_git_statuses, mock_languages,
-    mock_packages, mock_path_entries, mock_projects, mock_system_info,
+    mock_ai_tools, mock_diagnostics, mock_docker_status, mock_env_vars, mock_git_statuses,
+    mock_languages, mock_packages, mock_path_entries, mock_projects, mock_system_info,
 };

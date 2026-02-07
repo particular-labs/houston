@@ -428,7 +428,6 @@ fn resolve_config_dir(home: &str, primary: Option<&str>, _alt: Option<&str>) -> 
     None
 }
 
-/// npm outdated -g --json → { "pkg": { "current": "x", "latest": "y" } }
 struct NpmOutdated {
     current: String,
     latest: String,
@@ -436,36 +435,27 @@ struct NpmOutdated {
 
 fn fetch_npm_outdated() -> HashMap<String, NpmOutdated> {
     let mut map = HashMap::new();
-    // npm outdated exits 1 when packages are outdated -- that's not an error
-    let output = Command::new("npm")
-        .args(["outdated", "-g", "--json"])
-        .output();
-    if let Ok(out) = output {
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-            if let Some(obj) = json.as_object() {
-                for (pkg, info) in obj {
-                    let current = info
-                        .get("current")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let latest = info
-                        .get("latest")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    if !current.is_empty() && !latest.is_empty() {
-                        map.insert(pkg.clone(), NpmOutdated { current, latest });
-                    }
-                }
+    let json = super::outdated_cache::npm_outdated_json();
+    if let Some(obj) = json.as_object() {
+        for (pkg, info) in obj {
+            let current = info
+                .get("current")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let latest = info
+                .get("latest")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if !current.is_empty() && !latest.is_empty() {
+                map.insert(pkg.clone(), NpmOutdated { current, latest });
             }
         }
     }
     map
 }
 
-/// pip3 list --outdated --format=json → [{ "name": "x", "version": "y", "latest_version": "z" }]
 struct PipOutdated {
     version: String,
     latest: String,
@@ -473,41 +463,32 @@ struct PipOutdated {
 
 fn fetch_pip_outdated() -> HashMap<String, PipOutdated> {
     let mut map = HashMap::new();
-    let output = Command::new("pip3")
-        .args(["list", "--outdated", "--format=json"])
-        .output();
-    if let Ok(out) = output {
-        // Only parse stdout -- pip3 emits warnings to stderr
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-            if let Some(arr) = json.as_array() {
-                for item in arr {
-                    let name = item
-                        .get("name")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let version = item
-                        .get("version")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let latest = item
-                        .get("latest_version")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    if !name.is_empty() {
-                        map.insert(name.to_lowercase(), PipOutdated { version, latest });
-                    }
-                }
+    let json = super::outdated_cache::pip_outdated_json();
+    if let Some(arr) = json.as_array() {
+        for item in arr {
+            let name = item
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let version = item
+                .get("version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let latest = item
+                .get("latest_version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if !name.is_empty() {
+                map.insert(name.to_lowercase(), PipOutdated { version, latest });
             }
         }
     }
     map
 }
 
-/// brew outdated --json has { "formulae": [...], "casks": [...] }
 struct BrewOutdated {
     installed: String,
     current: String,
@@ -515,62 +496,55 @@ struct BrewOutdated {
 
 fn fetch_brew_outdated() -> HashMap<String, BrewOutdated> {
     let mut map = HashMap::new();
-    if cfg!(target_os = "windows") {
+    let json = super::outdated_cache::brew_outdated_json();
+    if json.is_null() {
         return map;
     }
-    let output = Command::new("brew").args(["outdated", "--json"]).output();
-    if let Ok(out) = output {
-        if out.status.success() {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                // Parse formulae
-                if let Some(formulae) = json.get("formulae").and_then(|v| v.as_array()) {
-                    for item in formulae {
-                        let name = item
-                            .get("name")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let installed = item
-                            .get("installed_versions")
-                            .and_then(|v| v.as_array())
-                            .and_then(|a| a.first())
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let current = item
-                            .get("current_version")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        if !name.is_empty() {
-                            map.insert(name, BrewOutdated { installed, current });
-                        }
-                    }
-                }
-                // Parse casks
-                if let Some(casks) = json.get("casks").and_then(|v| v.as_array()) {
-                    for item in casks {
-                        let name = item
-                            .get("name")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let installed = item
-                            .get("installed_versions")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let current = item
-                            .get("current_version")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        if !name.is_empty() {
-                            map.insert(name, BrewOutdated { installed, current });
-                        }
-                    }
-                }
+    // Parse formulae
+    if let Some(formulae) = json.get("formulae").and_then(|v| v.as_array()) {
+        for item in formulae {
+            let name = item
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let installed = item
+                .get("installed_versions")
+                .and_then(|v| v.as_array())
+                .and_then(|a| a.first())
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let current = item
+                .get("current_version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if !name.is_empty() {
+                map.insert(name, BrewOutdated { installed, current });
+            }
+        }
+    }
+    // Parse casks
+    if let Some(casks) = json.get("casks").and_then(|v| v.as_array()) {
+        for item in casks {
+            let name = item
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let installed = item
+                .get("installed_versions")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let current = item
+                .get("current_version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if !name.is_empty() {
+                map.insert(name, BrewOutdated { installed, current });
             }
         }
     }

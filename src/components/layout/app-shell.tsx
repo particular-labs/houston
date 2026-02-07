@@ -38,6 +38,11 @@ const WorkspacesSection = lazy(() =>
     default: m.WorkspacesSection,
   })),
 );
+const ContainersSection = lazy(() =>
+  import("@/components/sections/containers").then((m) => ({
+    default: m.ContainersSection,
+  })),
+);
 const PackagesSection = lazy(() =>
   import("@/components/sections/packages").then((m) => ({
     default: m.PackagesSection,
@@ -66,6 +71,7 @@ const sections = {
   languages: LanguagesSection,
   environment: EnvironmentSection,
   workspaces: WorkspacesSection,
+  containers: ContainersSection,
   packages: PackagesSection,
   tools: ToolsSection,
   settings: SettingsSection,

@@ -27,7 +27,7 @@ const QUICK_START_ITEMS = [
     icon: RefreshCw,
     title: "Check for Updates",
     description: "Houston checks automatically, or visit Settings to check manually",
-    shortcut: "⌘9",
+    shortcut: "⌘0",
   },
   {
     icon: Command,
@@ -38,7 +38,7 @@ const QUICK_START_ITEMS = [
 ];
 
 const SHORTCUTS = [
-  { keys: "⌘1-9", action: "Navigate sections" },
+  { keys: "⌘1-0", action: "Navigate sections" },
   { keys: "⌘K", action: "Command palette" },
   { keys: "⌘R", action: "Refresh all data" },
   { keys: "Esc", action: "Close dialogs" },

@@ -18,6 +18,7 @@ export const sectionLabels: Record<Section, string> = {
   languages: "Languages",
   environment: "Environment",
   workspaces: "Projects",
+  containers: "Containers",
   packages: "Packages",
   tools: "Tools",
   settings: "Settings",

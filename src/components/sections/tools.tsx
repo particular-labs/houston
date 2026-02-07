@@ -17,7 +17,7 @@ import { useToolMcpServers } from "@/hooks/use-tool-mcp-servers";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
-import { CardSkeleton } from "@/components/shared/skeleton";
+import { ToolCardSkeleton, DetailViewSkeleton, InfoCardSkeleton } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useNavigationStore } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -245,10 +245,10 @@ function ToolsListView() {
       />
 
       {isLoading ? (
-        <div className="space-y-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
+        <div className="grid grid-cols-3 gap-4">
+          <ToolCardSkeleton />
+          <ToolCardSkeleton />
+          <ToolCardSkeleton />
         </div>
       ) : (
         <>
@@ -489,7 +489,7 @@ function ToolDetailView({ toolName }: { toolName: string }) {
 
       {/* Generic MCP Servers accordion — works for any tool */}
       {mcpLoading ? (
-        <CardSkeleton />
+        <InfoCardSkeleton rows={3} />
       ) : mcpServers && mcpServers.length > 0 ? (
         <div className="rounded-lg border border-border bg-card">
           <button

@@ -10,6 +10,7 @@ const sectionLabels: Record<Section, string> = {
   languages: "Languages",
   environment: "Environment",
   workspaces: "Projects",
+  containers: "Containers",
   packages: "Packages",
   tools: "Tools",
   settings: "Settings",
@@ -73,6 +74,20 @@ export function AppHeader() {
                 </span>
               </>
             ) : detailContext.type === "project-detail" ? (
+              <>
+                <span className="text-xs text-muted-foreground">/</span>
+                <span className="text-sm font-medium">
+                  {detailContext.projectName}
+                </span>
+              </>
+            ) : detailContext.type === "container-detail" ? (
+              <>
+                <span className="text-xs text-muted-foreground">/</span>
+                <span className="text-sm font-medium">
+                  {detailContext.containerName}
+                </span>
+              </>
+            ) : detailContext.type === "compose-project" ? (
               <>
                 <span className="text-xs text-muted-foreground">/</span>
                 <span className="text-sm font-medium">

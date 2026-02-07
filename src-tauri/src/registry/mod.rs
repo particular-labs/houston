@@ -37,6 +37,7 @@
 //! All detection rules are declarative and defined in `data.rs`, making it easy
 //! to add new languages and frameworks without modifying detection logic.
 
+pub mod containers;
 pub mod data;
 pub mod detector;
 pub mod types;

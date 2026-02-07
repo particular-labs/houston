@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
+import { useSmartQuery } from "./use-smart-query";
 
 export function useEnvVars() {
-  return useQuery({
+  return useSmartQuery({
     queryKey: ["env-vars"],
     queryFn: commands.getEnvVars,
-    staleTime: 60_000,
+    activeStaleTime: 3_600_000,
+    hiddenStaleTime: Infinity,
   });
 }
