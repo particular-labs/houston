@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { commands, SettingPair } from "@/lib/commands";
+import { toast } from "sonner";
+
+let settingsToastTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function useSettings() {
   return useQuery({
@@ -25,6 +28,12 @@ export function useSetSetting() {
     onSuccess: (_data, { key }) => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       queryClient.invalidateQueries({ queryKey: ["setting", key] });
+      // Debounced toast to avoid spam on rapid changes
+      if (settingsToastTimer) clearTimeout(settingsToastTimer);
+      settingsToastTimer = setTimeout(() => {
+        toast.success("Settings saved");
+        settingsToastTimer = null;
+      }, 800);
     },
   });
 }

@@ -1,5 +1,6 @@
 pub mod ai_tools;
 pub mod claude;
+pub mod dev_servers;
 pub mod diagnostics;
 pub mod docker;
 pub mod environment;

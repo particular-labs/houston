@@ -31,6 +31,7 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { SearchInput } from "@/components/shared/search-input";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorBanner } from "@/components/shared/error-banner";
 import { DetailViewSkeleton, ContainerCardSkeleton } from "@/components/shared/skeleton";
 import { useNavigationStore, type DetailContext } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -91,6 +92,12 @@ function getStatusVariant(status: string): "success" | "warning" | "error" | "ne
     default:
       return "neutral";
   }
+}
+
+// HTTP-likely ports that should get clickable links
+const HTTP_PORTS = new Set([80, 443, 3000, 3001, 4000, 5000, 5173, 8000, 8080, 8443, 8888, 9000]);
+function isHttpLikelyPort(containerPort: number): boolean {
+  return HTTP_PORTS.has(containerPort);
 }
 
 // --- Container Card ---
@@ -203,17 +210,21 @@ function ContainerCard({ container }: { container: ContainerInfo }) {
             Mem: {formatBytes(container.memory_bytes)}
             {container.memory_limit > 0 && ` / ${formatBytes(container.memory_limit)}`}
           </span>
-          {primaryPort && (
-            <a
-              href={`http://localhost:${primaryPort.host_port}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-primary hover:underline"
-            >
-              :{primaryPort.host_port}
-              <ExternalLink className="h-2.5 w-2.5" />
-            </a>
+          {primaryPort && primaryPort.host_port && (
+            isHttpLikelyPort(primaryPort.container_port) ? (
+              <a
+                href={`http://localhost:${primaryPort.host_port}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 text-primary hover:underline"
+              >
+                :{primaryPort.host_port}
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            ) : (
+              <span>:{primaryPort.host_port}</span>
+            )
           )}
         </div>
       )}
@@ -407,15 +418,19 @@ function ContainerDetailView({ containerId }: { containerId: string }) {
                     {port.container_port}/{port.protocol}
                   </span>
                   {port.host_port ? (
-                    <a
-                      href={`http://localhost:${port.host_port}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-primary hover:underline"
-                    >
-                      :{port.host_port}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
+                    isHttpLikelyPort(port.container_port) ? (
+                      <a
+                        href={`http://localhost:${port.host_port}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        :{port.host_port}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <span className="font-mono text-xs">:{port.host_port}</span>
+                    )
                   ) : (
                     <span className="text-muted-foreground">not mapped</span>
                   )}
@@ -508,7 +523,7 @@ function DockerUnavailable() {
 // --- Main Section ---
 
 export function ContainersSection() {
-  const { data: dockerStatus, isLoading, isFetching } = useDockerStatus();
+  const { data: dockerStatus, isLoading, isFetching, isError, refetch } = useDockerStatus();
   const detailContext = useNavigationStore((s) => s.detailContext);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -577,6 +592,18 @@ export function ContainersSection() {
           <ContainerCardSkeleton />
           <ContainerCardSkeleton />
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          title="Containers"
+          description="Docker containers and Compose projects"
+        />
+        <ErrorBanner message="Failed to scan Docker containers" onRetry={() => refetch()} />
       </div>
     );
   }

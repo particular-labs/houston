@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
 import { useSmartQuery } from "./use-smart-query";
+import { toast } from "sonner";
 
 export function useDockerStatus() {
   return useSmartQuery({
@@ -34,22 +35,28 @@ export function useContainerActions() {
   const startContainer = useMutation({
     mutationFn: commands.startDockerContainer,
     onSuccess: () => {
+      toast.success("Container started");
       queryClient.invalidateQueries({ queryKey: ["docker-status"] });
     },
+    onError: () => toast.error("Failed to start container"),
   });
 
   const stopContainer = useMutation({
     mutationFn: commands.stopDockerContainer,
     onSuccess: () => {
+      toast.success("Container stopped");
       queryClient.invalidateQueries({ queryKey: ["docker-status"] });
     },
+    onError: () => toast.error("Failed to stop container"),
   });
 
   const restartContainer = useMutation({
     mutationFn: commands.restartDockerContainer,
     onSuccess: () => {
+      toast.success("Container restarted");
       queryClient.invalidateQueries({ queryKey: ["docker-status"] });
     },
+    onError: () => toast.error("Failed to restart container"),
   });
 
   return { startContainer, stopContainer, restartContainer };

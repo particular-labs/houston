@@ -12,6 +12,7 @@ import { SectionHeader } from "@/components/shared/section-header";
 import { CopyButton } from "@/components/shared/copy-button";
 import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { IssueLinkBadge } from "@/components/shared/issue-link-badge";
+import { ErrorBanner } from "@/components/shared/error-banner";
 import { useQueryClient } from "@tanstack/react-query";
 
 function InfoRow({
@@ -38,7 +39,7 @@ function InfoRow({
 }
 
 export function SystemSection() {
-  const { data: system, isLoading, isFetching } = useSystemInfo();
+  const { data: system, isLoading, isFetching, isError, refetch } = useSystemInfo();
   const queryClient = useQueryClient();
 
   if (isLoading) {
@@ -49,6 +50,15 @@ export function SystemSection() {
           <InfoCardSkeleton />
           <InfoCardSkeleton />
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader title="System" description="OS, shell, and hardware information" />
+        <ErrorBanner message="Failed to load system information" onRetry={() => refetch()} />
       </div>
     );
   }
@@ -94,7 +104,7 @@ export function SystemSection() {
           <h3 className="mb-1 text-sm font-medium">Hardware</h3>
           <div className="divide-y divide-border">
             <InfoRow icon={Cpu} label="CPU" value={system.cpu_brand} />
-            <InfoRow icon={HardDrive} label="Memory" value={system.memory_gb} />
+            <InfoRow icon={HardDrive} label="Memory" value={system.memory_gb === "0 GB" || system.memory_gb === "unlimited" ? "Unknown" : system.memory_gb} />
           </div>
         </div>
       </div>

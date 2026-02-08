@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react";
 import { useSystemInfo } from "@/hooks/use-system-info";
 import { usePathEntries } from "@/hooks/use-path-entries";
@@ -214,7 +215,7 @@ export function Dashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Memory</span>
-                <span className="font-mono text-xs">{system.memory_gb}</span>
+                <span className="font-mono text-xs">{system.memory_gb === "0 GB" || system.memory_gb === "unlimited" ? "Unknown" : system.memory_gb}</span>
               </div>
             </div>
           ) : null}

@@ -2,6 +2,7 @@ pub mod action_cmds;
 pub mod ai_tools_cmds;
 pub mod changelog_cmds;
 pub mod claude_cmds;
+pub mod dev_server_cmds;
 pub mod diagnostics_cmds;
 pub mod docker_cmds;
 pub mod env_cmds;

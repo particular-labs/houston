@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FolderPlus,
   FolderX,
@@ -7,6 +7,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowLeft,
+  ArrowUpDown,
   Terminal,
   Code2,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   ChevronRight,
   ChevronDown,
   Search,
+  Filter,
 } from "lucide-react";
 import {
   useProjects,
@@ -23,7 +25,9 @@ import {
   useRemoveWorkspace,
   useWorkspacePaths,
 } from "@/hooks/use-workspaces";
-import { useGitStatus } from "@/hooks/use-git-status";
+import { useGitStatus, useAllGitStatuses } from "@/hooks/use-git-status";
+import { useDevServers } from "@/hooks/use-dev-servers";
+import { useSetting, useSetSetting } from "@/hooks/use-settings";
 import { commands, type ProjectInfo } from "@/lib/commands";
 import { useNavigationStore } from "@/stores/navigation";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -40,6 +44,10 @@ import { ProjectDetail } from "./project-detail";
 
 function ProjectCard({ project }: { project: ProjectInfo }) {
   const { data: git } = useGitStatus(project.has_git ? project.path : "");
+  const { data: devServerReport } = useDevServers();
+  const hasDevServer = devServerReport?.servers.some(
+    (s) => s.project_path === project.path
+  );
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
 
   const handleCardClick = () => {
@@ -63,7 +71,15 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
       className="cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/30">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-medium">{project.name}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="truncate text-sm font-medium">{project.name}</h3>
+            {hasDevServer && (
+              <span className="relative flex h-2 w-2" title="Dev server running">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
+            )}
+          </div>
           {project.description && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {project.description}
@@ -532,6 +548,16 @@ function MonorepoWorktreeDetail({
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 0] as const;
 const PAGE_SIZE_LABELS: Record<number, string> = { 5: "5", 10: "10", 20: "20", 0: "All" };
 
+type SortKey = "name" | "framework" | "type";
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "name", label: "Name" },
+  { value: "framework", label: "Framework" },
+  { value: "type", label: "Language" },
+];
+
+type GitFilter = "all" | "dirty" | "clean";
+type ServerFilter = "all" | "running";
+
 export function WorkspacesSection() {
   const { data: workspacePaths } = useWorkspacePaths();
   const { data: projects, isLoading, isFetching } = useProjects();
@@ -540,11 +566,36 @@ export function WorkspacesSection() {
   const queryClient = useQueryClient();
   const groups = useGroupedProjects(projects);
   const detailContext = useNavigationStore((s) => s.detailContext);
+  const { data: allGitStatuses } = useAllGitStatuses();
+  const { data: devServerReport } = useDevServers();
 
-  // Pagination & filter state
+  // Persisted sort preference
+  const { data: savedSort } = useSetting("project_sort");
+  const setSetting = useSetSetting();
+
+  // Pagination, filter & sort state
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(0);
   const [searchFilter, setSearchFilter] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [gitFilter, setGitFilter] = useState<GitFilter>("all");
+  const [serverFilter, setServerFilter] = useState<ServerFilter>("all");
+
+  // Restore persisted sort on load
+  useEffect(() => {
+    if (savedSort && SORT_OPTIONS.some((o) => o.value === savedSort)) {
+      setSortKey(savedSort as SortKey);
+    }
+  }, [savedSort]);
+
+  const handleSortChange = useCallback(
+    (key: SortKey) => {
+      setSortKey(key);
+      setCurrentPage(0);
+      setSetting.mutate({ key: "project_sort", value: key });
+    },
+    [setSetting],
+  );
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchFilter(value);
@@ -556,29 +607,78 @@ export function WorkspacesSection() {
     setCurrentPage(0);
   }, []);
 
-  // Filtering
+  // Build a lookup for git dirty status
+  const gitDirtySet = useMemo(() => {
+    const set = new Set<string>();
+    if (allGitStatuses) {
+      for (const gs of allGitStatuses) {
+        if (gs.is_dirty) set.add(gs.project_path);
+      }
+    }
+    return set;
+  }, [allGitStatuses]);
+
+  // Build a lookup for running dev servers
+  const runningServerPaths = useMemo(() => {
+    const set = new Set<string>();
+    if (devServerReport?.servers) {
+      for (const s of devServerReport.servers) {
+        if (s.project_path) set.add(s.project_path);
+      }
+    }
+    return set;
+  }, [devServerReport]);
+
+  // Filter helper for individual projects
+  const projectMatchesFilters = useCallback(
+    (p: ProjectInfo) => {
+      if (gitFilter === "dirty" && !gitDirtySet.has(p.path)) return false;
+      if (gitFilter === "clean" && gitDirtySet.has(p.path)) return false;
+      if (serverFilter === "running" && !runningServerPaths.has(p.path)) return false;
+      return true;
+    },
+    [gitFilter, serverFilter, gitDirtySet, runningServerPaths],
+  );
+
+  // Sort comparator for projects
+  const sortProjects = useCallback(
+    (a: ProjectInfo, b: ProjectInfo) => {
+      switch (sortKey) {
+        case "framework":
+          return (a.framework || "").localeCompare(b.framework || "");
+        case "type":
+          return (a.project_type || "").localeCompare(b.project_type || "");
+        case "name":
+        default:
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      }
+    },
+    [sortKey],
+  );
+
+  // Filtering + sorting
   const filteredGroups = useMemo(() => {
-    if (!searchFilter) return groups;
     const query = searchFilter.toLowerCase();
+    const hasExtraFilters = gitFilter !== "all" || serverFilter !== "all";
+
     return groups
       .map((group) => {
-        if (group.name) {
-          const nameMatch = group.name.toLowerCase().includes(query);
-          const hasProjectMatch = group.projects.some((p) =>
-            p.name.toLowerCase().includes(query),
-          );
-          if (nameMatch || hasProjectMatch) return group;
-          return null;
-        } else {
-          const filtered = group.projects.filter((p) =>
-            p.name.toLowerCase().includes(query),
-          );
-          if (filtered.length === 0) return null;
-          return { ...group, projects: filtered };
-        }
+        // For named groups (monorepos, worktrees), filter at project level
+        const filteredProjects = group.projects.filter((p) => {
+          const matchesSearch =
+            !searchFilter ||
+            p.name.toLowerCase().includes(query) ||
+            (group.name && group.name.toLowerCase().includes(query));
+          return matchesSearch && projectMatchesFilters(p);
+        });
+
+        if (filteredProjects.length === 0) return null;
+
+        const sorted = [...filteredProjects].sort(sortProjects);
+        return { ...group, projects: sorted };
       })
       .filter(Boolean) as ProjectGroup[];
-  }, [groups, searchFilter]);
+  }, [groups, searchFilter, gitFilter, serverFilter, projectMatchesFilters, sortProjects]);
 
   // Pagination
   const pageItems = useMemo(() => {
@@ -693,57 +793,135 @@ export function WorkspacesSection() {
         </div>
       )}
 
-      {/* Toolbar: search + page size + pagination */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchFilter}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Filter projects..."
-            aria-label="Filter projects"
-            className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+      {/* Toolbar: search + sort + filters + page size + pagination */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative max-w-xs flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchFilter}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Filter projects..."
+              aria-label="Filter projects"
+              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Sort */}
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+              <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleSortChange(opt.value)}
+                    className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                      sortKey === opt.value
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Page size */}
+            <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <button
+                  key={size}
+                  onClick={() => handlePageSizeChange(size)}
+                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                    pageSize === size
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {PAGE_SIZE_LABELS[size]}
+                </button>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                  className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {currentPage + 1} / {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+                  }
+                  disabled={currentPage >= totalPages - 1}
+                  className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Filter pills */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-3 w-3 text-muted-foreground" />
+          {/* Git status filter */}
           <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
-            {PAGE_SIZE_OPTIONS.map((size) => (
+            {(["all", "dirty", "clean"] as GitFilter[]).map((val) => (
               <button
-                key={size}
-                onClick={() => handlePageSizeChange(size)}
+                key={val}
+                onClick={() => {
+                  setGitFilter(val);
+                  setCurrentPage(0);
+                }}
                 className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                  pageSize === size
+                  gitFilter === val
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {PAGE_SIZE_LABELS[size]}
+                {val === "all" ? "All" : val === "dirty" ? "Uncommitted" : "Clean"}
               </button>
             ))}
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
+          {/* Dev server filter */}
+          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+            {(["all", "running"] as ServerFilter[]).map((val) => (
               <button
-                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-                className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+                key={val}
+                onClick={() => {
+                  setServerFilter(val);
+                  setCurrentPage(0);
+                }}
+                className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  serverFilter === val
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                Prev
+                {val === "all" ? "Any Server" : "Server Running"}
               </button>
-              <span className="text-xs text-muted-foreground">
-                {currentPage + 1} / {totalPages}
-              </span>
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
-                }
-                disabled={currentPage >= totalPages - 1}
-                className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+            ))}
+          </div>
+          {(gitFilter !== "all" || serverFilter !== "all") && (
+            <button
+              onClick={() => {
+                setGitFilter("all");
+                setServerFilter("all");
+                setCurrentPage(0);
+              }}
+              className="rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Clear filters
+            </button>
           )}
         </div>
       </div>

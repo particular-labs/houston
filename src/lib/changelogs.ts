@@ -17,6 +17,42 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.10.0",
+    date: "2026-02-08",
+    title: "Dev Servers & UX Polish",
+    summary: "Detect running dev servers per project, sort and filter your workspace, and dozens of UX improvements across the board.",
+    highlights: [
+      "Dev server detection and start/stop controls for every project",
+      "Project sorting by name, framework, or language with persistent preference",
+      "Filter projects by git status (uncommitted/clean) or running dev server",
+    ],
+    sections: [
+      {
+        title: "New Features",
+        items: [
+          "Dev server scanner detects listening processes and maps them to workspace projects",
+          "Start and stop dev servers directly from the project detail view",
+          "Green pulsing indicator on project cards when a dev server is running",
+          "Sort projects by name, framework, or language — preference persists across sessions",
+          "Filter projects by git status (uncommitted changes vs clean) or running dev server",
+          "Keyboard shortcuts: Cmd+, for Settings, Escape to close panels, Cmd+Shift+R for hard refresh",
+        ],
+      },
+      {
+        title: "Improvements",
+        items: [
+          "Global cursor-pointer for all interactive elements (buttons, links, toggles)",
+          "Empty states for Languages, Tools, and Issues sections when no data is found",
+          "Error banners with retry buttons across all major sections",
+          "Toast notifications for workspace add/remove, container actions, settings saves, and refreshes",
+          "Container port links only show for HTTP-likely ports — database ports display as plain text",
+          "TTL settings validate input range (5–3600 seconds) with inline error messages",
+          "Memory display shows 'Unknown' instead of misleading '0 GB' or 'unlimited'",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.9.0",
     date: "2026-02-07",
     title: "Performance Overhaul",

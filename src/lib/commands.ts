@@ -315,6 +315,21 @@ export interface DockerStatus {
   scanned_at: string;
 }
 
+// Dev Server types
+export interface DevServer {
+  pid: number;
+  port: number;
+  process_name: string;
+  framework: string | null;
+  project_path: string | null;
+  uptime_secs: number | null;
+}
+
+export interface DevServerReport {
+  servers: DevServer[];
+  scanned_at: string;
+}
+
 // Stats types
 export interface ScannerStatsSnapshot {
   name: string;
@@ -425,6 +440,13 @@ export const commands = {
     invoke<ChangelogRow | null>("get_changelog", { version }),
   syncChangelog: (changelog: ChangelogInput) =>
     invoke<void>("sync_changelog", { changelog }),
+
+  // Dev Servers
+  getDevServers: () => invoke<DevServerReport>("get_dev_servers"),
+  refreshDevServers: () => invoke<DevServerReport>("refresh_dev_servers"),
+  stopDevServer: (pid: number) => invoke<void>("stop_dev_server", { pid }),
+  startDevServer: (projectPath: string, command?: string) =>
+    invoke<DevServer>("start_dev_server", { projectPath, command }),
 
   // Docker
   getDockerStatus: () => invoke<DockerStatus>("get_docker_status"),

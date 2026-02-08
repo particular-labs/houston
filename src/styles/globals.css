@@ -56,6 +56,14 @@
     @apply border-border;
   }
 
+  button,
+  [role="button"],
+  a[href],
+  summary,
+  select {
+    cursor: pointer;
+  }
+
   body {
     @apply text-foreground antialiased;
     background-color: var(--color-background) !important;

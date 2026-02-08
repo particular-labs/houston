@@ -262,18 +262,25 @@ function GeneralTabContent() {
 // Performance Tab Components
 // =============================================================================
 
+const TTL_MIN = 5;
+const TTL_MAX = 3600;
+
 function CacheConfigCard() {
   const { data: settings } = useSettings();
   const setSetting = useSetSetting();
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSave = (key: string) => {
     const num = parseInt(editValue, 10);
-    if (!isNaN(num) && num > 0) {
-      setSetting.mutate({ key, value: String(num) });
+    if (isNaN(num) || num < TTL_MIN || num > TTL_MAX) {
+      setValidationError(`Must be ${TTL_MIN}–${TTL_MAX}s`);
+      return;
     }
+    setSetting.mutate({ key, value: String(num) });
     setEditingKey(null);
+    setValidationError(null);
   };
 
   return (
@@ -291,23 +298,40 @@ function CacheConfigCard() {
             <div key={key} className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{label}</span>
               {isEditing ? (
-                <input
-                  type="number"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={() => handleSave(key)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSave(key);
-                    if (e.key === "Escape") setEditingKey(null);
-                  }}
-                  autoFocus
-                  className="w-16 rounded border border-primary bg-background px-1.5 py-0.5 text-right font-mono text-xs focus:outline-none"
-                />
+                <div className="flex items-center gap-1">
+                  {validationError && (
+                    <span className="text-[10px] text-destructive">{validationError}</span>
+                  )}
+                  <input
+                    type="number"
+                    min={TTL_MIN}
+                    max={TTL_MAX}
+                    value={editValue}
+                    onChange={(e) => {
+                      setEditValue(e.target.value);
+                      setValidationError(null);
+                    }}
+                    onBlur={() => handleSave(key)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSave(key);
+                      if (e.key === "Escape") {
+                        setEditingKey(null);
+                        setValidationError(null);
+                      }
+                    }}
+                    autoFocus
+                    className={cn(
+                      "w-16 rounded border bg-background px-1.5 py-0.5 text-right font-mono text-xs focus:outline-none",
+                      validationError ? "border-destructive" : "border-primary"
+                    )}
+                  />
+                </div>
               ) : (
                 <button
                   onClick={() => {
                     setEditingKey(key);
                     setEditValue(value);
+                    setValidationError(null);
                   }}
                   className="rounded px-1.5 py-0.5 font-mono text-xs text-foreground hover:bg-accent"
                 >

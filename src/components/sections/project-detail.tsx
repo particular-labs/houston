@@ -12,20 +12,120 @@ import {
   Folder,
   FileCode,
   Database,
+  Play,
+  Square,
+  Radio,
+  Loader2,
 } from "lucide-react";
 import { useProjectAnalysis } from "@/hooks/use-project-analysis";
+import { useDevServers, useStopDevServer, useStartDevServer } from "@/hooks/use-dev-servers";
 import { useNavigationStore } from "@/stores/navigation";
 import { commands } from "@/lib/commands";
 import type {
   ProjectAnalysis,
   DirectorySize,
   LanguageDetails,
+  DevServer,
 } from "@/lib/commands";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
 import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
+
+function formatUptime(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function DevServerCard({
+  server,
+  projectPath,
+}: {
+  server?: DevServer;
+  projectPath: string;
+}) {
+  const stopServer = useStopDevServer();
+  const startServer = useStartDevServer();
+  const isPending = stopServer.isPending || startServer.isPending;
+
+  if (!server) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Radio className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Dev Server</h3>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            No dev server running
+          </span>
+          <button
+            onClick={() => startServer.mutate({ projectPath })}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Play className="h-3 w-3" />
+            )}
+            Start
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-success/25 bg-success/5 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success" />
+          </span>
+          <h3 className="text-sm font-medium">Dev Server</h3>
+          <StatusBadge variant="success">running</StatusBadge>
+        </div>
+        <button
+          onClick={() => stopServer.mutate(server.pid)}
+          disabled={isPending}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
+        >
+          {isPending ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Square className="h-3 w-3" />
+          )}
+          Stop
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-4 text-sm">
+        <div>
+          <span className="text-xs text-muted-foreground">Port</span>
+          <p className="font-mono font-semibold">
+            {server.port > 0 ? `:${server.port}` : "detecting..."}
+          </p>
+        </div>
+        <div>
+          <span className="text-xs text-muted-foreground">Framework</span>
+          <p className="font-medium">{server.framework ?? server.process_name}</p>
+        </div>
+        <div>
+          <span className="text-xs text-muted-foreground">Uptime</span>
+          <p className="font-mono">
+            {server.uptime_secs != null ? formatUptime(server.uptime_secs) : "—"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface ProjectDetailProps {
   projectPath: string;
@@ -448,6 +548,10 @@ export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) 
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
   const queryClient = useQueryClient();
   const { data: analysis, isLoading, isFetching } = useProjectAnalysis(projectPath);
+  const { data: devServerReport } = useDevServers();
+  const projectServer = devServerReport?.servers.find(
+    (s) => s.project_path === projectPath
+  );
 
   return (
     <div className="space-y-6">
@@ -498,6 +602,9 @@ export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) 
         </div>
       ) : analysis ? (
         <div className="space-y-4">
+          {/* Dev Server */}
+          <DevServerCard server={projectServer} projectPath={projectPath} />
+
           {/* Top row: Storage + Language Details */}
           <div className="grid gap-4 md:grid-cols-2">
             <StorageCard analysis={analysis} />

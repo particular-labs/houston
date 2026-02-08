@@ -20,6 +20,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useUpdateStore } from "@/stores/update";
 import { useSettings, useSetSetting, getSettingValue } from "@/hooks/use-settings";
@@ -89,13 +90,16 @@ export function AppSidebar() {
 
   const handleInstallUpdate = async () => {
     setUpdateStatus("downloading", updateVersion);
+    toast("Downloading update...");
     try {
       const update = await check();
       if (update?.available) {
         await update.downloadAndInstall();
+        toast.success("Update ready — restarting...");
         await relaunch();
       }
     } catch {
+      toast.error("Update failed");
       setUpdateStatus("error");
     }
   };

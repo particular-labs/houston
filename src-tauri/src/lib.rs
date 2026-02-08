@@ -6,9 +6,9 @@ mod scanners;
 mod state;
 
 use commands::{
-    action_cmds, ai_tools_cmds, changelog_cmds, claude_cmds, diagnostics_cmds, docker_cmds,
-    env_cmds, history_cmds, issue_cmds, language_cmds, package_cmds, project_cmds, settings_cmds,
-    stats_cmds, system_cmds, workspace_cmds,
+    action_cmds, ai_tools_cmds, changelog_cmds, claude_cmds, dev_server_cmds, diagnostics_cmds,
+    docker_cmds, env_cmds, history_cmds, issue_cmds, language_cmds, package_cmds, project_cmds,
+    settings_cmds, stats_cmds, system_cmds, workspace_cmds,
 };
 use state::AppState;
 
@@ -86,6 +86,11 @@ pub fn run() {
             docker_cmds::stop_docker_container,
             docker_cmds::restart_docker_container,
             docker_cmds::get_docker_container_logs,
+            // Dev Servers
+            dev_server_cmds::get_dev_servers,
+            dev_server_cmds::refresh_dev_servers,
+            dev_server_cmds::stop_dev_server,
+            dev_server_cmds::start_dev_server,
         ])
         .setup(|app| {
             use tauri::Manager;

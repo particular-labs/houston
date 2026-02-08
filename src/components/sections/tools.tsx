@@ -250,17 +250,18 @@ function ToolsListView() {
           <ToolCardSkeleton />
           <ToolCardSkeleton />
         </div>
+      ) : installedTools.length === 0 ? (
+        <EmptyState
+          icon={Wrench}
+          title="No AI development tools detected"
+          description="Install tools like Claude Code, Cursor, GitHub Copilot, or others to see them here"
+        />
       ) : (
-        <>
-          {installedTools.length > 0 && (
-            <div className="grid grid-cols-3 gap-4">
-              {installedTools.map((tool) => (
-                <InstalledToolCard key={tool.name} tool={tool} />
-              ))}
-            </div>
-          )}
-          {/* Not-detected tools hidden — only show installed */}
-        </>
+        <div className="grid grid-cols-3 gap-4">
+          {installedTools.map((tool) => (
+            <InstalledToolCard key={tool.name} tool={tool} />
+          ))}
+        </div>
       )}
     </div>
   );

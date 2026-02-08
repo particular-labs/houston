@@ -1,6 +1,6 @@
 [package]
 name = "houston"
-version = "0.9.0"
+version = "0.10.0"
 description = "Developer Environment Dashboard"
 authors = ["Lennick Velez"]
 edition = "2021"

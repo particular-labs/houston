@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { createElement, useEffect, useRef } from "react";
 import { useNavigationStore, type Section } from "@/stores/navigation";
@@ -34,26 +34,50 @@ const sectionShortcuts: Record<string, Section> = {
 
 function KeyboardShortcuts() {
   const setSection = useNavigationStore((s) => s.setActiveSection);
+  const setDetailContext = useNavigationStore((s) => s.setDetailContext);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape — close detail panel / modal
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setDetailContext(null);
+        return;
+      }
+
       if (e.metaKey || e.ctrlKey) {
-        // Cmd+1-8 for section navigation
+        // Cmd+, — open Settings (macOS convention)
+        if (e.key === ",") {
+          e.preventDefault();
+          setSection("settings");
+          return;
+        }
+        // Cmd+1-0 for section navigation
         const section = sectionShortcuts[e.key];
         if (section) {
           e.preventDefault();
           setSection(section);
+          return;
         }
-        // Cmd+R for refresh all
+        // Cmd+Shift+R — hard refresh (invalidate all + force backend rescan)
+        if (e.key === "r" && e.shiftKey) {
+          e.preventDefault();
+          toast("Hard refreshing all data...");
+          queryClient.invalidateQueries();
+          return;
+        }
+        // Cmd+R — soft refresh
         if (e.key === "r") {
           e.preventDefault();
+          toast("Refreshing all data...");
           queryClient.invalidateQueries();
+          return;
         }
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [setSection]);
+  }, [setSection, setDetailContext]);
 
   return null;
 }

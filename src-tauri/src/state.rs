@@ -110,9 +110,10 @@ use serde::Serialize as SerializeTrait;
 
 use crate::db::Database;
 use crate::scanners::{
-    ai_tools::AiToolsReport, claude::ClaudeConfig, diagnostics::DiagnosticReport,
-    docker::DockerStatus, environment::EnvVarInfo, git::GitStatus, languages::LanguageInfo,
-    packages::PackageList, path::PathEntry, system::SystemInfo, workspace::ProjectInfo,
+    ai_tools::AiToolsReport, claude::ClaudeConfig, dev_servers::DevServerReport,
+    diagnostics::DiagnosticReport, docker::DockerStatus, environment::EnvVarInfo,
+    git::GitStatus, languages::LanguageInfo, packages::PackageList, path::PathEntry,
+    system::SystemInfo, workspace::ProjectInfo,
 };
 
 pub struct AppState {
@@ -129,6 +130,7 @@ pub struct AppState {
     pub diagnostics_cache: Mutex<ScanCache<DiagnosticReport>>,
     pub ai_tools_cache: Mutex<ScanCache<AiToolsReport>>,
     pub docker_cache: Mutex<ScanCache<DockerStatus>>,
+    pub dev_server_cache: Mutex<ScanCache<DevServerReport>>,
     // Per-scanner stats
     pub system_stats: ScanStats,
     pub path_stats: ScanStats,
@@ -141,6 +143,7 @@ pub struct AppState {
     pub diagnostics_stats: ScanStats,
     pub ai_tools_stats: ScanStats,
     pub docker_stats: ScanStats,
+    pub dev_server_stats: ScanStats,
     // Docker fingerprint for conditional DB writes (running_count, stopped_count)
     pub docker_fingerprint: Mutex<Option<(usize, usize)>>,
     // Throttle scan record writes: scanner_name → last write instant
@@ -172,6 +175,7 @@ impl AppState {
         let ttl_diagnostics = get_ttl("ttl_diagnostics", 600);
         let ttl_ai_tools = get_ttl("ttl_ai_tools", 600);
         let ttl_docker = get_ttl("ttl_docker", 15);
+        let ttl_dev_servers = get_ttl("ttl_dev_servers", 15);
 
         // Hydrate workspace paths from database
         let workspace_paths = db.get_workspaces().unwrap_or_default();
@@ -190,6 +194,7 @@ impl AppState {
             diagnostics_cache: Mutex::new(ScanCache::new(ttl_diagnostics)),
             ai_tools_cache: Mutex::new(ScanCache::new(ttl_ai_tools)),
             docker_cache: Mutex::new(ScanCache::new(ttl_docker)),
+            dev_server_cache: Mutex::new(ScanCache::new(ttl_dev_servers)),
             system_stats: ScanStats::new(),
             path_stats: ScanStats::new(),
             language_stats: ScanStats::new(),
@@ -201,6 +206,7 @@ impl AppState {
             diagnostics_stats: ScanStats::new(),
             ai_tools_stats: ScanStats::new(),
             docker_stats: ScanStats::new(),
+            dev_server_stats: ScanStats::new(),
             docker_fingerprint: Mutex::new(None),
             scan_record_timestamps: Mutex::new(HashMap::new()),
             startup_instant: Instant::now(),

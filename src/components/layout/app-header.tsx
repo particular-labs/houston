@@ -2,6 +2,7 @@ import { Search, RefreshCw } from "lucide-react";
 import { useNavigationStore, type Section } from "@/stores/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const sectionLabels: Record<Section, string> = {
   dashboard: "Dashboard",
@@ -25,6 +26,7 @@ export function AppHeader() {
 
   const handleRefreshAll = async () => {
     setIsRefreshing(true);
+    toast("Refreshing all data...");
     await queryClient.invalidateQueries();
     setTimeout(() => setIsRefreshing(false), 500);
   };
