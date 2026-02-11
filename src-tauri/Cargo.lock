@@ -1693,7 +1693,7 @@ dependencies = [
 
 [[package]]
 name = "houston"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "bollard",
@@ -1715,6 +1715,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "walkdir",

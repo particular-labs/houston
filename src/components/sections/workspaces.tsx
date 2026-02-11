@@ -19,6 +19,7 @@ import {
   Search,
   Filter,
   Brain,
+  AlertTriangle,
 } from "lucide-react";
 import {
   useProjects,
@@ -40,6 +41,7 @@ import { ProjectCardSkeleton } from "@/components/shared/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCollapsibleSections } from "@/hooks/use-collapsible-sections";
+import { useVersionMismatches } from "@/hooks/use-version-mismatches";
 import { groupBySubfolder } from "@/lib/group-by-subfolder";
 import { ProjectDetail } from "./project-detail";
 
@@ -49,6 +51,8 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
   const hasDevServer = devServerReport?.servers.some(
     (s) => s.project_path === project.path
   );
+  const { byProject } = useVersionMismatches();
+  const hasMismatch = byProject.get(project.path)?.hasMismatch ?? false;
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
 
   const handleCardClick = () => {
@@ -109,6 +113,11 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
             >
               {project.health_score.grade}
             </StatusBadge>
+          )}
+          {hasMismatch && (
+            <span title="Version mismatch detected">
+              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+            </span>
           )}
         </div>
       </div>
@@ -567,15 +576,17 @@ function MonorepoWorktreeDetail({
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 0] as const;
 const PAGE_SIZE_LABELS: Record<number, string> = { 5: "5", 10: "10", 20: "20", 0: "All" };
 
-type SortKey = "name" | "framework" | "type";
+type SortKey = "name" | "framework" | "type" | "recent";
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "name", label: "Name" },
   { value: "framework", label: "Framework" },
   { value: "type", label: "Language" },
+  { value: "recent", label: "Recent" },
 ];
 
 type GitFilter = "all" | "dirty" | "clean";
 type ServerFilter = "all" | "running";
+type ArtifactsFilter = "all" | "has_artifacts";
 
 export function WorkspacesSection() {
   const { data: workspacePaths } = useWorkspacePaths();
@@ -599,6 +610,7 @@ export function WorkspacesSection() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [gitFilter, setGitFilter] = useState<GitFilter>("all");
   const [serverFilter, setServerFilter] = useState<ServerFilter>("all");
+  const [artifactsFilter, setArtifactsFilter] = useState<ArtifactsFilter>("all");
 
   // Restore persisted sort on load
   useEffect(() => {
@@ -654,12 +666,24 @@ export function WorkspacesSection() {
       if (gitFilter === "dirty" && !gitDirtySet.has(p.path)) return false;
       if (gitFilter === "clean" && gitDirtySet.has(p.path)) return false;
       if (serverFilter === "running" && !runningServerPaths.has(p.path)) return false;
+      if (artifactsFilter === "has_artifacts" && !p.has_build_artifacts) return false;
       return true;
     },
-    [gitFilter, serverFilter, gitDirtySet, runningServerPaths],
+    [gitFilter, serverFilter, artifactsFilter, gitDirtySet, runningServerPaths],
   );
 
   // Sort comparator for projects
+  // Build epoch lookup for recent sort
+  const epochLookup = useMemo(() => {
+    const map = new Map<string, number>();
+    if (allGitStatuses) {
+      for (const gs of allGitStatuses) {
+        if (gs.last_commit_epoch) map.set(gs.project_path, gs.last_commit_epoch);
+      }
+    }
+    return map;
+  }, [allGitStatuses]);
+
   const sortProjects = useCallback(
     (a: ProjectInfo, b: ProjectInfo) => {
       switch (sortKey) {
@@ -667,18 +691,23 @@ export function WorkspacesSection() {
           return (a.framework || "").localeCompare(b.framework || "");
         case "type":
           return (a.project_type || "").localeCompare(b.project_type || "");
+        case "recent": {
+          const ea = epochLookup.get(a.path) ?? 0;
+          const eb = epochLookup.get(b.path) ?? 0;
+          return eb - ea; // descending — most recent first
+        }
         case "name":
         default:
           return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       }
     },
-    [sortKey],
+    [sortKey, epochLookup],
   );
 
   // Filtering + sorting
   const filteredGroups = useMemo(() => {
     const query = searchFilter.toLowerCase();
-    const hasExtraFilters = gitFilter !== "all" || serverFilter !== "all";
+    const hasExtraFilters = gitFilter !== "all" || serverFilter !== "all" || artifactsFilter !== "all";
 
     return groups
       .map((group) => {
@@ -697,7 +726,7 @@ export function WorkspacesSection() {
         return { ...group, projects: sorted };
       })
       .filter(Boolean) as ProjectGroup[];
-  }, [groups, searchFilter, gitFilter, serverFilter, projectMatchesFilters, sortProjects]);
+  }, [groups, searchFilter, gitFilter, serverFilter, artifactsFilter, projectMatchesFilters, sortProjects]);
 
   // Pagination
   const pageItems = useMemo(() => {
@@ -930,11 +959,31 @@ export function WorkspacesSection() {
               </button>
             ))}
           </div>
-          {(gitFilter !== "all" || serverFilter !== "all") && (
+          {/* Artifacts filter */}
+          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+            {(["all", "has_artifacts"] as ArtifactsFilter[]).map((val) => (
+              <button
+                key={val}
+                onClick={() => {
+                  setArtifactsFilter(val);
+                  setCurrentPage(0);
+                }}
+                className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  artifactsFilter === val
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {val === "all" ? "Any Artifacts" : "Has Artifacts"}
+              </button>
+            ))}
+          </div>
+          {(gitFilter !== "all" || serverFilter !== "all" || artifactsFilter !== "all") && (
             <button
               onClick={() => {
                 setGitFilter("all");
                 setServerFilter("all");
+                setArtifactsFilter("all");
                 setCurrentPage(0);
               }}
               className="rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"

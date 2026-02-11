@@ -10,16 +10,22 @@ import {
   Loader2,
   Brain,
   Shield,
+  HardDrive,
+  Network,
+  Clock,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSystemInfo } from "@/hooks/use-system-info";
 import { usePathEntries } from "@/hooks/use-path-entries";
 import { useLanguages } from "@/hooks/use-languages";
 import { useAllGitStatuses } from "@/hooks/use-git-status";
 import { useProjects } from "@/hooks/use-workspaces";
+import { usePortMap } from "@/hooks/use-port-map";
+import { useVersionMismatches } from "@/hooks/use-version-mismatches";
 import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
 import { StatusDot } from "@/components/shared/status-dot";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { StatCardSkeleton, InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useNavigationStore } from "@/stores/navigation";
 
@@ -76,6 +82,9 @@ export function Dashboard() {
   const setSection = useNavigationStore((s) => s.setActiveSection);
 
   const { data: projects } = useProjects();
+  const portStats = usePortMap();
+  const { totalCount: versionMismatchCount } = useVersionMismatches();
+  const [showPortMap, setShowPortMap] = useState(false);
 
   const pathWarnings =
     paths?.filter((p) => !p.exists || p.is_duplicate).length ?? 0;
@@ -91,6 +100,23 @@ export function Dashboard() {
     [projects],
   );
   const totalProjectCount = projects?.length ?? 0;
+
+  const projectsWithArtifacts = useMemo(
+    () => projects?.filter((p) => p.has_build_artifacts).length ?? 0,
+    [projects],
+  );
+
+  const recentProject = useMemo(() => {
+    if (!gitStatuses || gitStatuses.length === 0) return null;
+    let best: { name: string; epoch: number; date: string } | null = null;
+    for (const gs of gitStatuses) {
+      if (gs.last_commit_epoch && (!best || gs.last_commit_epoch > best.epoch)) {
+        const name = gs.project_path.split("/").pop() ?? gs.project_path;
+        best = { name, epoch: gs.last_commit_epoch, date: gs.last_commit_date };
+      }
+    }
+    return best;
+  }, [gitStatuses]);
 
   const avgHealthGrade = useMemo(() => {
     if (!projects || projects.length === 0) return "—";
@@ -130,7 +156,7 @@ export function Dashboard() {
       )}
 
       {/* Metric cards — each renders independently */}
-      <div className="grid grid-cols-4 gap-4 xl:grid-cols-7">
+      <div className="grid grid-cols-4 gap-4 xl:grid-cols-5 2xl:grid-cols-11">
         {systemLoading ? (
           <StatCardSkeleton />
         ) : (
@@ -231,7 +257,104 @@ export function Dashboard() {
           }
           onClick={() => setSection("workspaces")}
         />
+        <MetricCard
+          icon={HardDrive}
+          label="Build Artifacts"
+          value={projectsWithArtifacts}
+          status={projectsWithArtifacts > 0 ? "info" : "success"}
+          detail={
+            projectsWithArtifacts > 0
+              ? `${projectsWithArtifacts} project${projectsWithArtifacts !== 1 ? "s" : ""} with artifacts`
+              : "No build artifacts"
+          }
+          onClick={() => setSection("workspaces")}
+        />
+        <MetricCard
+          icon={Network}
+          label="Active Ports"
+          value={portStats.totalPorts}
+          status={portStats.hasConflicts ? "warning" : portStats.totalPorts > 0 ? "info" : "success"}
+          detail={
+            portStats.hasConflicts
+              ? `${portStats.conflicts.length} port conflict${portStats.conflicts.length !== 1 ? "s" : ""}`
+              : portStats.totalPorts > 0
+                ? `${portStats.totalPorts} port${portStats.totalPorts !== 1 ? "s" : ""} in use`
+                : "No active ports"
+          }
+          onClick={() => setShowPortMap((v) => !v)}
+        />
+        <MetricCard
+          icon={AlertTriangle}
+          label="Version"
+          value={versionMismatchCount}
+          status={versionMismatchCount > 0 ? "warning" : "success"}
+          detail={
+            versionMismatchCount > 0
+              ? `${versionMismatchCount} project${versionMismatchCount !== 1 ? "s" : ""} mismatched`
+              : "All versions match"
+          }
+          onClick={() => setSection("workspaces")}
+        />
+        <MetricCard
+          icon={Clock}
+          label="Recent"
+          value={recentProject?.name ?? "—"}
+          status="info"
+          detail={recentProject ? recentProject.date : "No recent activity"}
+          onClick={() => setSection("workspaces")}
+        />
       </div>
+
+      {/* Port Map table */}
+      {showPortMap && (
+        <div className="rounded-lg border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Network className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium">Port Map</h3>
+              {portStats.hasConflicts && (
+                <StatusBadge variant="warning">
+                  {portStats.conflicts.length} conflict{portStats.conflicts.length !== 1 ? "s" : ""}
+                </StatusBadge>
+              )}
+            </div>
+          </div>
+          {portStats.entries.length > 0 ? (
+            <div className="divide-y divide-border">
+              {portStats.entries.map((entry, i) => (
+                <div
+                  key={`${entry.port}-${entry.source}-${i}`}
+                  className={`flex items-center justify-between px-4 py-2.5 ${
+                    portStats.conflicts.includes(entry.port) ? "bg-warning/5" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-sm font-semibold">:{entry.port}</span>
+                    <span className="max-w-[200px] truncate text-xs text-muted-foreground">
+                      {entry.source}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {entry.framework && (
+                      <StatusBadge variant="neutral">{entry.framework}</StatusBadge>
+                    )}
+                    <StatusBadge variant={entry.type === "dev-server" ? "info" : "neutral"}>
+                      {entry.type === "dev-server" ? "dev server" : "docker"}
+                    </StatusBadge>
+                    {portStats.conflicts.includes(entry.port) && (
+                      <StatusBadge variant="warning">conflict</StatusBadge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+              No active ports detected
+            </div>
+          )}
+        </div>
+      )}
 
       {/* System overview + Languages */}
       <div className="grid grid-cols-2 gap-4">

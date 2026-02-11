@@ -52,6 +52,12 @@ export interface ProjectHealthScore {
   has_type_checking: boolean;
 }
 
+export interface VersionFile {
+  name: string;
+  expected_version: string;
+  language: string;
+}
+
 export interface ProjectInfo {
   name: string;
   path: string;
@@ -66,6 +72,8 @@ export interface ProjectInfo {
   worktree_id: string;
   ai_context_files: string[];
   health_score: ProjectHealthScore | null;
+  has_build_artifacts: boolean;
+  version_files: VersionFile[];
 }
 
 export interface GitStatus {
@@ -79,6 +87,7 @@ export interface GitStatus {
   behind: number;
   last_commit_message: string;
   last_commit_date: string;
+  last_commit_epoch: number | null;
   remote_url: string;
 }
 

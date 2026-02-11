@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-use crate::registry::{detect, is_project_dir, SKIP_DIRS};
+use crate::registry::{detect, get_storage_dirs_by_type, is_project_dir, SKIP_DIRS};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectHealthScore {
@@ -15,6 +15,13 @@ pub struct ProjectHealthScore {
     pub has_gitignore: bool,
     pub has_linter: bool,
     pub has_type_checking: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VersionFile {
+    pub name: String,
+    pub expected_version: String,
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +39,8 @@ pub struct ProjectInfo {
     pub worktree_id: String,
     pub ai_context_files: Vec<String>,
     pub health_score: Option<ProjectHealthScore>,
+    pub has_build_artifacts: bool,
+    pub version_files: Vec<VersionFile>,
 }
 
 fn get_project_name(path: &Path) -> Option<String> {
@@ -179,6 +188,37 @@ fn calculate_health_score(path: &Path) -> ProjectHealthScore {
     }
 }
 
+fn has_build_artifacts(path: &Path, language_display: &str) -> bool {
+    get_storage_dirs_by_type(language_display)
+        .iter()
+        .filter(|d| d.category != "vcs")
+        .any(|d| path.join(d.name).exists())
+}
+
+fn detect_version_files(path: &Path) -> Vec<VersionFile> {
+    let candidates: &[(&str, &str)] = &[
+        (".nvmrc", "node"),
+        (".node-version", "node"),
+        (".python-version", "python"),
+        (".ruby-version", "ruby"),
+    ];
+    candidates
+        .iter()
+        .filter_map(|(file, lang)| {
+            let content = fs::read_to_string(path.join(file)).ok()?;
+            let version = content.trim().to_string();
+            if version.is_empty() {
+                return None;
+            }
+            Some(VersionFile {
+                name: file.to_string(),
+                expected_version: version,
+                language: lang.to_string(),
+            })
+        })
+        .collect()
+}
+
 fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInfo> {
     // Use the registry to detect project type
     let detection = detect(path)?;
@@ -193,6 +233,8 @@ fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInf
 
     let ai_context_files = detect_ai_context_files(path);
     let health_score = Some(calculate_health_score(path));
+    let build_artifacts = has_build_artifacts(path, &detection.language_display);
+    let version_files = detect_version_files(path);
 
     Some(ProjectInfo {
         name,
@@ -208,6 +250,8 @@ fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInf
         worktree_id: String::new(),
         ai_context_files,
         health_score,
+        has_build_artifacts: build_artifacts,
+        version_files,
     })
 }
 
@@ -495,5 +539,63 @@ pub fn scan_monorepo_packages(root_path: &str) -> Vec<ProjectInfo> {
             packages
         }
         None => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_has_build_artifacts_with_node_modules() {
+        let tmp = TempDir::new().unwrap();
+        fs::create_dir(tmp.path().join("node_modules")).unwrap();
+        assert!(has_build_artifacts(tmp.path(), "JavaScript/TypeScript"));
+    }
+
+    #[test]
+    fn test_has_build_artifacts_empty_project() {
+        let tmp = TempDir::new().unwrap();
+        assert!(!has_build_artifacts(tmp.path(), "JavaScript/TypeScript"));
+    }
+
+    #[test]
+    fn test_detect_version_files_nvmrc() {
+        let tmp = TempDir::new().unwrap();
+        fs::write(tmp.path().join(".nvmrc"), "20").unwrap();
+        let files = detect_version_files(tmp.path());
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].name, ".nvmrc");
+        assert_eq!(files[0].expected_version, "20");
+        assert_eq!(files[0].language, "node");
+    }
+
+    #[test]
+    fn test_detect_version_files_multiple() {
+        let tmp = TempDir::new().unwrap();
+        fs::write(tmp.path().join(".nvmrc"), "20").unwrap();
+        fs::write(tmp.path().join(".python-version"), "3.12").unwrap();
+        let files = detect_version_files(tmp.path());
+        assert_eq!(files.len(), 2);
+        let langs: Vec<&str> = files.iter().map(|f| f.language.as_str()).collect();
+        assert!(langs.contains(&"node"));
+        assert!(langs.contains(&"python"));
+    }
+
+    #[test]
+    fn test_detect_version_files_empty_dir() {
+        let tmp = TempDir::new().unwrap();
+        let files = detect_version_files(tmp.path());
+        assert!(files.is_empty());
+    }
+
+    #[test]
+    fn test_detect_version_files_trims_whitespace() {
+        let tmp = TempDir::new().unwrap();
+        fs::write(tmp.path().join(".nvmrc"), "20\n").unwrap();
+        let files = detect_version_files(tmp.path());
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].expected_version, "20");
     }
 }

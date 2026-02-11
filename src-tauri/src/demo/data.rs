@@ -11,7 +11,7 @@ use crate::scanners::{
     packages::{PackageInfo, PackageList},
     path::PathEntry,
     system::SystemInfo,
-    workspace::ProjectInfo,
+    workspace::{ProjectInfo, VersionFile},
 };
 
 /// Mock system information for a generic macOS setup.
@@ -270,6 +270,12 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             worktree_id: String::new(),
             ai_context_files: vec![],
             health_score: None,
+            has_build_artifacts: true,
+            version_files: vec![VersionFile {
+                name: ".nvmrc".to_string(),
+                expected_version: "20".to_string(),
+                language: "node".to_string(),
+            }],
         },
         ProjectInfo {
             name: "acme-api".to_string(),
@@ -285,6 +291,12 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             worktree_id: String::new(),
             ai_context_files: vec![],
             health_score: None,
+            has_build_artifacts: true,
+            version_files: vec![VersionFile {
+                name: ".nvmrc".to_string(),
+                expected_version: "18".to_string(),
+                language: "node".to_string(),
+            }],
         },
         ProjectInfo {
             name: "acme-mobile".to_string(),
@@ -300,6 +312,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             worktree_id: String::new(),
             ai_context_files: vec![],
             health_score: None,
+            has_build_artifacts: false,
+            version_files: vec![],
         },
         ProjectInfo {
             name: "dev-tools".to_string(),
@@ -315,6 +329,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             worktree_id: String::new(),
             ai_context_files: vec![],
             health_score: None,
+            has_build_artifacts: true,
+            version_files: vec![],
         },
         ProjectInfo {
             name: "design-system".to_string(),
@@ -330,6 +346,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             worktree_id: String::new(),
             ai_context_files: vec![],
             health_score: None,
+            has_build_artifacts: true,
+            version_files: vec![],
         },
         ProjectInfo {
             name: "data-pipeline".to_string(),
@@ -345,6 +363,12 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             worktree_id: String::new(),
             ai_context_files: vec![],
             health_score: None,
+            has_build_artifacts: false,
+            version_files: vec![VersionFile {
+                name: ".python-version".to_string(),
+                expected_version: "3.12".to_string(),
+                language: "python".to_string(),
+            }],
         },
     ]
 }
@@ -363,6 +387,7 @@ pub fn mock_git_statuses() -> Vec<GitStatus> {
             behind: 0,
             last_commit_message: "chore: update dependencies".to_string(),
             last_commit_date: "2 hours ago".to_string(),
+            last_commit_epoch: Some(1739196000),
             remote_url: "https://github.com/acme/acme-web.git".to_string(),
         },
         GitStatus {
@@ -376,6 +401,7 @@ pub fn mock_git_statuses() -> Vec<GitStatus> {
             behind: 0,
             last_commit_message: "feat: add JWT refresh token support".to_string(),
             last_commit_date: "30 minutes ago".to_string(),
+            last_commit_epoch: Some(1739201400),
             remote_url: "https://github.com/acme/acme-api.git".to_string(),
         },
         GitStatus {
@@ -389,6 +415,7 @@ pub fn mock_git_statuses() -> Vec<GitStatus> {
             behind: 3,
             last_commit_message: "fix: navigation stack reset on logout".to_string(),
             last_commit_date: "1 day ago".to_string(),
+            last_commit_epoch: Some(1739116800),
             remote_url: "https://github.com/acme/acme-mobile.git".to_string(),
         },
         GitStatus {
@@ -402,6 +429,7 @@ pub fn mock_git_statuses() -> Vec<GitStatus> {
             behind: 0,
             last_commit_message: "release: v0.5.0".to_string(),
             last_commit_date: "3 days ago".to_string(),
+            last_commit_epoch: Some(1738944000),
             remote_url: "https://github.com/acme/dev-tools.git".to_string(),
         },
         GitStatus {
@@ -415,6 +443,7 @@ pub fn mock_git_statuses() -> Vec<GitStatus> {
             behind: 0,
             last_commit_message: "feat: add dark mode variants".to_string(),
             last_commit_date: "5 hours ago".to_string(),
+            last_commit_epoch: Some(1739185200),
             remote_url: "https://github.com/acme/design-system.git".to_string(),
         },
         GitStatus {
@@ -428,6 +457,7 @@ pub fn mock_git_statuses() -> Vec<GitStatus> {
             behind: 0,
             last_commit_message: "perf: optimize batch processing".to_string(),
             last_commit_date: "1 hour ago".to_string(),
+            last_commit_epoch: Some(1739199600),
             remote_url: "https://github.com/acme/data-pipeline.git".to_string(),
         },
     ]

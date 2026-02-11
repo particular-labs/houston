@@ -21,10 +21,12 @@ import {
   CheckCircle2,
   XCircle,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { useProjectAnalysis } from "@/hooks/use-project-analysis";
 import { useProjects } from "@/hooks/use-workspaces";
 import { useDevServers, useStopDevServer, useStartDevServer } from "@/hooks/use-dev-servers";
+import { useVersionMismatches } from "@/hooks/use-version-mismatches";
 import { useNavigationStore } from "@/stores/navigation";
 import { commands } from "@/lib/commands";
 import type {
@@ -655,6 +657,57 @@ function AiContextCard({ files }: { files: string[] }) {
   );
 }
 
+function VersionMismatchCard({ projectPath }: { projectPath: string }) {
+  const { byProject } = useVersionMismatches();
+  const data = byProject.get(projectPath);
+
+  if (!data || data.mismatches.length === 0) return null;
+
+  return (
+    <div
+      className={`rounded-lg border p-4 ${
+        data.hasMismatch
+          ? "border-warning/25 bg-warning/5"
+          : "border-border bg-card"
+      }`}
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-medium">Version Requirements</h3>
+        {data.hasMismatch && (
+          <StatusBadge variant="warning">mismatch</StatusBadge>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {data.mismatches.map((m) => (
+          <div
+            key={m.file.name}
+            className="flex items-center justify-between text-sm"
+          >
+            <div className="flex items-center gap-2">
+              {m.matches ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-warning" />
+              )}
+              <span className="font-mono text-xs">{m.file.name}</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>
+                expects <span className="font-mono font-medium text-foreground">{m.file.expected_version}</span>
+              </span>
+              <span>
+                system <span className={`font-mono font-medium ${m.matches ? "text-success" : "text-warning"}`}>{m.systemVersion}</span>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) {
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
   const queryClient = useQueryClient();
@@ -727,6 +780,9 @@ export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) 
               <AiContextCard files={projectInfo.ai_context_files ?? []} />
             )}
           </div>
+
+          {/* Version mismatch */}
+          <VersionMismatchCard projectPath={projectPath} />
 
           {/* Top row: Storage + Language Details */}
           <div className="grid gap-4 md:grid-cols-2">

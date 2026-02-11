@@ -17,6 +17,49 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.12.0",
+    date: "2026-02-11",
+    title: "Quick Wins: Ports, Versions & Activity",
+    summary: "Four new dashboard metrics for port mapping, version mismatches, build artifacts, and recent project activity, plus new workspace sorting and filtering.",
+    highlights: [
+      "Port Map shows all active ports from dev servers and Docker with conflict detection",
+      "Version Mismatch detection compares .nvmrc/.python-version to installed runtimes",
+      "Recent Activity sort and build artifacts filter in Workspaces",
+    ],
+    sections: [
+      {
+        title: "New Features",
+        items: [
+          "Port Map dashboard card with collapsible table showing all active ports",
+          "Port conflict detection when dev servers and Docker containers share ports",
+          "Version Mismatch dashboard card counting projects with version file drift",
+          "Version Requirements detail card in project view with per-file match/mismatch",
+          "Build Artifacts dashboard card counting projects with build output directories",
+          "Recent Activity dashboard card showing last active project",
+          "Recent sort option in Workspaces (sorts by last git commit timestamp)",
+          "Has Artifacts filter pill in Workspaces toolbar",
+          "Version mismatch warning icon on project cards",
+        ],
+      },
+      {
+        title: "Improvements",
+        items: [
+          "Git status now includes commit epoch for sorting and recency display",
+          "Project scanner detects .nvmrc, .node-version, .python-version, .ruby-version",
+          "Build artifact detection reuses the registry — no hardcoded directory lists",
+        ],
+      },
+      {
+        title: "Developer Experience",
+        items: [
+          "Vitest test infrastructure bootstrapped with path alias support",
+          "Pure computation logic extracted to src/lib/ for testability (DRY/SSOT)",
+          "11 frontend tests + 10 Rust unit tests covering all new logic",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.11.0",
     date: "2026-02-10",
     title: "AI Context & Project Health",
