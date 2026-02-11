@@ -5,6 +5,19 @@ use std::path::Path;
 use crate::registry::{detect, is_project_dir, SKIP_DIRS};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectHealthScore {
+    pub grade: String,
+    pub percentage: u8,
+    pub has_readme: bool,
+    pub has_license: bool,
+    pub has_tests: bool,
+    pub has_ci: bool,
+    pub has_gitignore: bool,
+    pub has_linter: bool,
+    pub has_type_checking: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectInfo {
     pub name: String,
     pub path: String,
@@ -17,6 +30,8 @@ pub struct ProjectInfo {
     pub group_type: String,
     pub is_monorepo_root: bool,
     pub worktree_id: String,
+    pub ai_context_files: Vec<String>,
+    pub health_score: Option<ProjectHealthScore>,
 }
 
 fn get_project_name(path: &Path) -> Option<String> {
@@ -77,6 +92,93 @@ fn get_description(path: &Path) -> String {
     String::new()
 }
 
+fn detect_ai_context_files(path: &Path) -> Vec<String> {
+    let candidates = [
+        "CLAUDE.md",
+        ".cursorrules",
+        ".github/copilot-instructions.md",
+        "AGENTS.md",
+    ];
+    candidates
+        .iter()
+        .filter(|f| path.join(f).exists())
+        .map(|f| f.to_string())
+        .collect()
+}
+
+fn calculate_health_score(path: &Path) -> ProjectHealthScore {
+    let has_readme = ["README.md", "README.rst", "README.txt", "README"]
+        .iter()
+        .any(|f| path.join(f).exists());
+
+    let has_license = ["LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE"]
+        .iter()
+        .any(|f| path.join(f).exists());
+
+    let has_tests = ["tests", "test", "__tests__", "spec"]
+        .iter()
+        .any(|d| path.join(d).is_dir());
+
+    let has_ci = path.join(".github/workflows").is_dir();
+
+    let has_gitignore = path.join(".gitignore").exists();
+
+    let has_linter = [
+        "eslint.config.js",
+        "eslint.config.mjs",
+        ".eslintrc",
+        ".eslintrc.js",
+        ".eslintrc.json",
+        ".eslintrc.yml",
+        "biome.json",
+        "biome.jsonc",
+        ".prettierrc",
+    ]
+    .iter()
+    .any(|f| path.join(f).exists())
+        || path.join("Cargo.toml").exists();
+
+    let has_type_checking = ["tsconfig.json", "jsconfig.json", "pyproject.toml"]
+        .iter()
+        .any(|f| path.join(f).exists())
+        || path.join("Cargo.toml").exists();
+
+    let points = [
+        has_readme,
+        has_license,
+        has_tests,
+        has_ci,
+        has_gitignore,
+        has_linter,
+        has_type_checking,
+    ]
+    .iter()
+    .filter(|&&v| v)
+    .count() as u8;
+
+    let percentage = (points as f32 / 7.0 * 100.0).round() as u8;
+    let grade = match percentage {
+        86..=100 => "A",
+        72..=85 => "B",
+        58..=71 => "C",
+        43..=57 => "D",
+        _ => "F",
+    }
+    .to_string();
+
+    ProjectHealthScore {
+        grade,
+        percentage,
+        has_readme,
+        has_license,
+        has_tests,
+        has_ci,
+        has_gitignore,
+        has_linter,
+        has_type_checking,
+    }
+}
+
 fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInfo> {
     // Use the registry to detect project type
     let detection = detect(path)?;
@@ -88,6 +190,9 @@ fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInf
     let name = get_project_name(path).unwrap_or(folder_name);
     let description = get_description(path);
     let has_git = path.join(".git").exists();
+
+    let ai_context_files = detect_ai_context_files(path);
+    let health_score = Some(calculate_health_score(path));
 
     Some(ProjectInfo {
         name,
@@ -101,6 +206,8 @@ fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInf
         group_type: group_type.to_string(),
         is_monorepo_root: false,
         worktree_id: String::new(),
+        ai_context_files,
+        health_score,
     })
 }
 

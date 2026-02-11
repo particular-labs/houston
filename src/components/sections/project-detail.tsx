@@ -16,8 +16,14 @@ import {
   Square,
   Radio,
   Loader2,
+  Brain,
+  Shield,
+  CheckCircle2,
+  XCircle,
+  FileText,
 } from "lucide-react";
 import { useProjectAnalysis } from "@/hooks/use-project-analysis";
+import { useProjects } from "@/hooks/use-workspaces";
 import { useDevServers, useStopDevServer, useStartDevServer } from "@/hooks/use-dev-servers";
 import { useNavigationStore } from "@/stores/navigation";
 import { commands } from "@/lib/commands";
@@ -26,6 +32,7 @@ import type {
   DirectorySize,
   LanguageDetails,
   DevServer,
+  ProjectHealthScore,
 } from "@/lib/commands";
 import { SectionHeader } from "@/components/shared/section-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -544,11 +551,117 @@ function DirectoryBreakdownTable({ directories }: { directories: DirectorySize[]
   );
 }
 
+function HealthScoreCard({ score }: { score: ProjectHealthScore }) {
+  const gradeColor =
+    score.grade === "A" || score.grade === "B"
+      ? "text-success"
+      : score.grade === "C"
+        ? "text-warning"
+        : "text-destructive";
+
+  const checks = [
+    { label: "README", value: score.has_readme },
+    { label: "License", value: score.has_license },
+    { label: "Tests", value: score.has_tests },
+    { label: "CI/CD", value: score.has_ci },
+    { label: ".gitignore", value: score.has_gitignore },
+    { label: "Linter", value: score.has_linter },
+    { label: "Type Checking", value: score.has_type_checking },
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Shield className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-medium">Project Health</h3>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <span className={`text-4xl font-bold ${gradeColor}`}>{score.grade}</span>
+        <div className="flex-1">
+          <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{score.percentage}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full ${
+                score.grade === "A" || score.grade === "B"
+                  ? "bg-success"
+                  : score.grade === "C"
+                    ? "bg-warning"
+                    : "bg-destructive"
+              }`}
+              style={{ width: `${score.percentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {checks.map((check) => (
+          <div key={check.label} className="flex items-center gap-2 text-sm">
+            {check.value ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+            ) : (
+              <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+            <span className={check.value ? "" : "text-muted-foreground"}>
+              {check.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AiContextCard({ files }: { files: string[] }) {
+  const allFiles = [
+    { name: "CLAUDE.md", label: "Claude Code" },
+    { name: ".cursorrules", label: "Cursor" },
+    { name: ".github/copilot-instructions.md", label: "GitHub Copilot" },
+    { name: "AGENTS.md", label: "Codex / Agents" },
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Brain className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-medium">AI Context Files</h3>
+        {files.length > 0 && (
+          <StatusBadge variant="success">{files.length} found</StatusBadge>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {allFiles.map((f) => {
+          const present = files.includes(f.name);
+          return (
+            <div key={f.name} className="flex items-center gap-2 text-sm">
+              {present ? (
+                <FileText className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <FileText className="h-3.5 w-3.5 text-muted-foreground/40" />
+              )}
+              <span className={present ? "font-mono text-xs" : "font-mono text-xs text-muted-foreground"}>
+                {f.name}
+              </span>
+              <span className="text-xs text-muted-foreground">{f.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) {
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
   const queryClient = useQueryClient();
   const { data: analysis, isLoading, isFetching } = useProjectAnalysis(projectPath);
   const { data: devServerReport } = useDevServers();
+  const { data: allProjects } = useProjects();
+  const projectInfo = allProjects?.find((p) => p.path === projectPath);
   const projectServer = devServerReport?.servers.find(
     (s) => s.project_path === projectPath
   );
@@ -604,6 +717,16 @@ export function ProjectDetail({ projectPath, projectName }: ProjectDetailProps) 
         <div className="space-y-4">
           {/* Dev Server */}
           <DevServerCard server={projectServer} projectPath={projectPath} />
+
+          {/* Health Score + AI Context */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {projectInfo?.health_score && (
+              <HealthScoreCard score={projectInfo.health_score} />
+            )}
+            {projectInfo && (
+              <AiContextCard files={projectInfo.ai_context_files ?? []} />
+            )}
+          </div>
 
           {/* Top row: Storage + Language Details */}
           <div className="grid gap-4 md:grid-cols-2">

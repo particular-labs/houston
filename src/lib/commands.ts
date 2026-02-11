@@ -40,6 +40,18 @@ export interface EnvVarInfo {
   category: string;
 }
 
+export interface ProjectHealthScore {
+  grade: string;
+  percentage: number;
+  has_readme: boolean;
+  has_license: boolean;
+  has_tests: boolean;
+  has_ci: boolean;
+  has_gitignore: boolean;
+  has_linter: boolean;
+  has_type_checking: boolean;
+}
+
 export interface ProjectInfo {
   name: string;
   path: string;
@@ -52,6 +64,8 @@ export interface ProjectInfo {
   group_type: string;
   is_monorepo_root: boolean;
   worktree_id: string;
+  ai_context_files: string[];
+  health_score: ProjectHealthScore | null;
 }
 
 export interface GitStatus {

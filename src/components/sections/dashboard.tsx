@@ -8,11 +8,15 @@ import {
   CheckCircle2,
   ArrowUpRight,
   Loader2,
+  Brain,
+  Shield,
 } from "lucide-react";
+import { useMemo } from "react";
 import { useSystemInfo } from "@/hooks/use-system-info";
 import { usePathEntries } from "@/hooks/use-path-entries";
 import { useLanguages } from "@/hooks/use-languages";
 import { useAllGitStatuses } from "@/hooks/use-git-status";
+import { useProjects } from "@/hooks/use-workspaces";
 import { useQuery } from "@tanstack/react-query";
 import { commands } from "@/lib/commands";
 import { StatusDot } from "@/components/shared/status-dot";
@@ -71,6 +75,8 @@ export function Dashboard() {
   });
   const setSection = useNavigationStore((s) => s.setActiveSection);
 
+  const { data: projects } = useProjects();
+
   const pathWarnings =
     paths?.filter((p) => !p.exists || p.is_duplicate).length ?? 0;
   const installedLangs = languages?.filter((l) => l.installed).length ?? 0;
@@ -79,6 +85,26 @@ export function Dashboard() {
   const diagnosticCount = diagnosticsReport?.items.length ?? 0;
   const hasErrors = diagnosticsReport?.items.some((i) => i.severity === "error") ?? false;
   const hasWarnings = diagnosticsReport?.items.some((i) => i.severity === "warning") ?? false;
+
+  const aiContextCount = useMemo(
+    () => projects?.filter((p) => p.ai_context_files?.length > 0).length ?? 0,
+    [projects],
+  );
+  const totalProjectCount = projects?.length ?? 0;
+
+  const avgHealthGrade = useMemo(() => {
+    if (!projects || projects.length === 0) return "—";
+    const scores = projects
+      .map((p) => p.health_score?.percentage)
+      .filter((v): v is number => v != null);
+    if (scores.length === 0) return "—";
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    if (avg >= 86) return "A";
+    if (avg >= 72) return "B";
+    if (avg >= 58) return "C";
+    if (avg >= 43) return "D";
+    return "F";
+  }, [projects]);
 
   return (
     <div className="space-y-6">
@@ -104,7 +130,7 @@ export function Dashboard() {
       )}
 
       {/* Metric cards — each renders independently */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-4 gap-4 xl:grid-cols-7">
         {systemLoading ? (
           <StatCardSkeleton />
         ) : (
@@ -172,6 +198,38 @@ export function Dashboard() {
               : `${diagnosticCount} issue${diagnosticCount !== 1 ? "s" : ""} found`
           }
           onClick={() => setSection("issues")}
+        />
+        <MetricCard
+          icon={Brain}
+          label="AI Context"
+          value={aiContextCount}
+          status={aiContextCount > 0 ? "info" : "warning"}
+          detail={
+            aiContextCount > 0
+              ? `${aiContextCount} of ${totalProjectCount} project${totalProjectCount !== 1 ? "s" : ""}`
+              : "No AI context files found"
+          }
+          onClick={() => setSection("workspaces")}
+        />
+        <MetricCard
+          icon={Shield}
+          label="Avg Health"
+          value={avgHealthGrade}
+          status={
+            avgHealthGrade === "A" || avgHealthGrade === "B"
+              ? "success"
+              : avgHealthGrade === "C"
+                ? "warning"
+                : avgHealthGrade === "—"
+                  ? "info"
+                  : "error"
+          }
+          detail={
+            avgHealthGrade === "—"
+              ? "No projects scanned"
+              : `Average grade across ${totalProjectCount} project${totalProjectCount !== 1 ? "s" : ""}`
+          }
+          onClick={() => setSection("workspaces")}
         />
       </div>
 

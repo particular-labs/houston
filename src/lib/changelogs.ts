@@ -17,6 +17,32 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.11.0",
+    date: "2026-02-10",
+    title: "AI Context & Project Health",
+    summary: "See which projects have AI context files (CLAUDE.md, .cursorrules, etc.) and get a health grade for every project based on best-practice checks.",
+    highlights: [
+      "Project Health Score grades every project A–F across 7 quality checks",
+      "AI Context Files dashboard detects CLAUDE.md, .cursorrules, copilot-instructions, and AGENTS.md",
+      "New dashboard metric cards for AI context coverage and average health grade",
+    ],
+    sections: [
+      {
+        title: "New Features",
+        items: [
+          "Project Health Score with letter grade (A–F) based on README, LICENSE, tests, CI, .gitignore, linter, and type checking",
+          "Health grade badge on every project card with color-coded status",
+          "Health Score detail card with percentage bar and 7-item checklist",
+          "AI context file detection for CLAUDE.md, .cursorrules, .github/copilot-instructions.md, and AGENTS.md",
+          "Brain icon on project cards when AI context files are present",
+          "AI Context detail card showing detected and missing context files",
+          "Dashboard metric card showing AI context coverage across projects",
+          "Dashboard metric card showing average project health grade",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.0",
     date: "2026-02-08",
     title: "Dev Servers & UX Polish",

@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Search,
   Filter,
+  Brain,
 } from "lucide-react";
 import {
   useProjects,
@@ -79,6 +80,11 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
               </span>
             )}
+            {project.ai_context_files?.length > 0 && (
+              <span title={`AI: ${project.ai_context_files.join(", ")}`}>
+                <Brain className="h-3.5 w-3.5 text-primary" />
+              </span>
+            )}
           </div>
           {project.description && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -91,6 +97,19 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
             <StatusBadge variant="neutral">root</StatusBadge>
           )}
           <StatusBadge variant="info">{project.project_type}</StatusBadge>
+          {project.health_score && (
+            <StatusBadge
+              variant={
+                project.health_score.grade === "A" || project.health_score.grade === "B"
+                  ? "success"
+                  : project.health_score.grade === "C"
+                    ? "warning"
+                    : "error"
+              }
+            >
+              {project.health_score.grade}
+            </StatusBadge>
+          )}
         </div>
       </div>
 

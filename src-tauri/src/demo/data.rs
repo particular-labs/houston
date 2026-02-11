@@ -268,6 +268,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             group_type: String::new(),
             is_monorepo_root: false,
             worktree_id: String::new(),
+            ai_context_files: vec![],
+            health_score: None,
         },
         ProjectInfo {
             name: "acme-api".to_string(),
@@ -281,6 +283,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             group_type: String::new(),
             is_monorepo_root: false,
             worktree_id: String::new(),
+            ai_context_files: vec![],
+            health_score: None,
         },
         ProjectInfo {
             name: "acme-mobile".to_string(),
@@ -294,6 +298,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             group_type: String::new(),
             is_monorepo_root: false,
             worktree_id: String::new(),
+            ai_context_files: vec![],
+            health_score: None,
         },
         ProjectInfo {
             name: "dev-tools".to_string(),
@@ -307,6 +313,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             group_type: String::new(),
             is_monorepo_root: false,
             worktree_id: String::new(),
+            ai_context_files: vec![],
+            health_score: None,
         },
         ProjectInfo {
             name: "design-system".to_string(),
@@ -320,6 +328,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             group_type: String::new(),
             is_monorepo_root: true,
             worktree_id: String::new(),
+            ai_context_files: vec![],
+            health_score: None,
         },
         ProjectInfo {
             name: "data-pipeline".to_string(),
@@ -333,6 +343,8 @@ pub fn mock_projects() -> Vec<ProjectInfo> {
             group_type: String::new(),
             is_monorepo_root: false,
             worktree_id: String::new(),
+            ai_context_files: vec![],
+            health_score: None,
         },
     ]
 }
