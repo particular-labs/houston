@@ -17,6 +17,46 @@ export interface ChangelogEntry {
 // Static changelog data - add new versions at the TOP
 export const changelogs: ChangelogEntry[] = [
   {
+    version: "0.13.0",
+    date: "2026-02-12",
+    title: "Your Tools, Your Way",
+    summary: "Choose your preferred terminal, editor, and AI tool with auto-detected dropdowns, plus deeper project discovery and a unified settings experience.",
+    highlights: [
+      "Configurable default terminal, editor, and AI coding tool in Settings",
+      "Recursive project scanning with adjustable depth for nested workspaces",
+      "Unified settings UI with categorical sections in a single card",
+    ],
+    sections: [
+      {
+        title: "New Features",
+        items: [
+          "Default Terminal preference — choose from Terminal.app, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm, or Hyper",
+          "Default Editor preference — dynamically populated from detected installed editors",
+          "Default AI Tool preference — replaces hardcoded Claude Code button with configurable choice",
+          "All tool dropdowns auto-detect installed tools using the existing tool registry",
+          "Configurable scan depth for recursive project discovery (2–10 levels deep)",
+        ],
+      },
+      {
+        title: "Improvements",
+        items: [
+          "Settings consolidated into a single card with Appearance, Developer Tools, Workspace, and Miscellaneous sections",
+          "Tool registry categories classify each tool as terminal, editor, and/or AI tool",
+          "System app detection now checks /System/Applications for built-in macOS apps",
+          "Project card paths truncated with tooltip showing the full path on hover",
+          "AI tool button labels update dynamically based on your selected preference",
+        ],
+      },
+      {
+        title: "Developer Experience",
+        items: [
+          "Extracted tool-filters utility for testable category filtering and label logic",
+          "21 new test cases covering tool filtering, label derivation, and settings helpers",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-02-11",
     title: "Quick Wins: Ports, Versions & Activity",
