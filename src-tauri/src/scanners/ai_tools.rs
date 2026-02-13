@@ -42,6 +42,7 @@ pub struct AiToolInfo {
     pub config_dir: Option<String>,
     pub has_ai: bool,
     pub ai_features: Vec<String>,
+    pub categories: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,10 +64,12 @@ struct ToolSpec {
     has_ai: bool,
     ai_features: &'static [&'static str],
     app_bundle_alt: Option<&'static str>,
+    categories: &'static [&'static str],
 }
 
 fn tool_registry() -> Vec<ToolSpec> {
     vec![
+        // AI Tools (CLI)
         ToolSpec {
             name: "Claude Code",
             binary: "claude",
@@ -80,6 +83,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Agent", "Chat", "MCP"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "Claude Desktop",
@@ -94,6 +98,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Chat", "MCP", "Artifacts"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "OpenAI Codex CLI",
@@ -108,6 +113,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Agent", "Code Generation"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "Gemini CLI",
@@ -122,6 +128,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Agent", "Chat"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "Aider",
@@ -136,6 +143,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Agent", "Chat", "Code Edit"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "Amazon Q Developer",
@@ -150,6 +158,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Agent", "Chat", "Code Completion"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "GitHub Copilot CLI",
@@ -164,6 +173,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["CLI Suggestions"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
         ToolSpec {
             name: "Amp",
@@ -178,7 +188,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Agent", "Chat"],
             app_bundle_alt: None,
+            categories: &["ai_tool"],
         },
+        // AI-powered Editors (editor + ai_tool)
         ToolSpec {
             name: "Cursor",
             binary: "cursor",
@@ -192,6 +204,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Copilot++", "Chat", "Agent"],
             app_bundle_alt: None,
+            categories: &["editor", "ai_tool"],
         },
         ToolSpec {
             name: "Windsurf",
@@ -206,7 +219,9 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Cascade", "Chat", "Autocomplete"],
             app_bundle_alt: None,
+            categories: &["editor", "ai_tool"],
         },
+        // Editors
         ToolSpec {
             name: "Zed",
             binary: "zed",
@@ -220,8 +235,8 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["AI Assistant", "Inline Completion"],
             app_bundle_alt: None,
+            categories: &["editor"],
         },
-        // IDEs & Editors
         ToolSpec {
             name: "VS Code",
             binary: "code",
@@ -235,6 +250,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Copilot", "Chat", "Inline Completion"],
             app_bundle_alt: None,
+            categories: &["editor"],
         },
         ToolSpec {
             name: "IntelliJ IDEA",
@@ -249,6 +265,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["AI Assistant", "Chat", "Inline Completion"],
             app_bundle_alt: Some("IntelliJ IDEA CE.app"),
+            categories: &["editor"],
         },
         ToolSpec {
             name: "WebStorm",
@@ -263,6 +280,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["AI Assistant", "Chat", "Inline Completion"],
             app_bundle_alt: None,
+            categories: &["editor"],
         },
         ToolSpec {
             name: "PyCharm",
@@ -277,6 +295,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["AI Assistant", "Chat", "Inline Completion"],
             app_bundle_alt: Some("PyCharm CE.app"),
+            categories: &["editor"],
         },
         ToolSpec {
             name: "Android Studio",
@@ -291,6 +310,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: true,
             ai_features: &["Gemini", "Chat", "Code Completion"],
             app_bundle_alt: None,
+            categories: &["editor"],
         },
         ToolSpec {
             name: "Neovim",
@@ -305,20 +325,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: false,
             ai_features: &[],
             app_bundle_alt: None,
-        },
-        ToolSpec {
-            name: "Warp",
-            binary: "",
-            package_name: "",
-            install_method: InstallMethod::SelfManaged,
-            install_hint: "https://www.warp.dev",
-            tool_type: ToolType::App,
-            app_bundle: Some("Warp.app"),
-            config_dir_name: None,
-            config_dir_alt: None,
-            has_ai: true,
-            ai_features: &["Warp AI", "Command Suggestions"],
-            app_bundle_alt: None,
+            categories: &["editor"],
         },
         ToolSpec {
             name: "Sublime Text",
@@ -333,6 +340,7 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: false,
             ai_features: &[],
             app_bundle_alt: None,
+            categories: &["editor"],
         },
         ToolSpec {
             name: "Nova",
@@ -347,6 +355,128 @@ fn tool_registry() -> Vec<ToolSpec> {
             has_ai: false,
             ai_features: &[],
             app_bundle_alt: None,
+            categories: &["editor"],
+        },
+        // Terminals
+        ToolSpec {
+            name: "Warp",
+            binary: "",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://www.warp.dev",
+            tool_type: ToolType::App,
+            app_bundle: Some("Warp.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: true,
+            ai_features: &["Warp AI", "Command Suggestions"],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "Terminal",
+            binary: "",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "Built-in macOS terminal",
+            tool_type: ToolType::App,
+            app_bundle: Some("Utilities/Terminal.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "iTerm2",
+            binary: "",
+            package_name: "iterm2",
+            install_method: InstallMethod::BrewCask,
+            install_hint: "brew install --cask iterm2",
+            tool_type: ToolType::App,
+            app_bundle: Some("iTerm.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "Ghostty",
+            binary: "ghostty",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://ghostty.org",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Ghostty.app"),
+            config_dir_name: Some(".config/ghostty"),
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "kitty",
+            binary: "kitty",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://sw.kovidgoyal.net/kitty/",
+            tool_type: ToolType::Both,
+            app_bundle: Some("kitty.app"),
+            config_dir_name: Some(".config/kitty"),
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "Alacritty",
+            binary: "alacritty",
+            package_name: "alacritty",
+            install_method: InstallMethod::BrewCask,
+            install_hint: "brew install --cask alacritty",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Alacritty.app"),
+            config_dir_name: Some(".config/alacritty"),
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "WezTerm",
+            binary: "wezterm",
+            package_name: "wezterm",
+            install_method: InstallMethod::BrewCask,
+            install_hint: "brew install --cask wezterm",
+            tool_type: ToolType::Both,
+            app_bundle: Some("WezTerm.app"),
+            config_dir_name: Some(".config/wezterm"),
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
+        },
+        ToolSpec {
+            name: "Hyper",
+            binary: "hyper",
+            package_name: "",
+            install_method: InstallMethod::SelfManaged,
+            install_hint: "https://hyper.is",
+            tool_type: ToolType::Both,
+            app_bundle: Some("Hyper.app"),
+            config_dir_name: None,
+            config_dir_alt: None,
+            has_ai: false,
+            ai_features: &[],
+            app_bundle_alt: None,
+            categories: &["terminal"],
         },
     ]
 }
@@ -355,9 +485,12 @@ fn tool_registry() -> Vec<ToolSpec> {
 fn check_app_installed(bundle: &str) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
-        let path = format!("/Applications/{}", bundle);
-        if std::path::Path::new(&path).exists() {
-            return Some(path);
+        // Check /Applications first, then /System/Applications for built-in macOS apps
+        for prefix in &["/Applications", "/System/Applications"] {
+            let path = format!("{}/{}", prefix, bundle);
+            if std::path::Path::new(&path).exists() {
+                return Some(path);
+            }
         }
     }
 
@@ -884,6 +1017,7 @@ pub fn scan() -> AiToolsReport {
                     config_dir,
                     has_ai: spec.has_ai,
                     ai_features: spec.ai_features.iter().map(|s| s.to_string()).collect(),
+                    categories: spec.categories.iter().map(|s| s.to_string()).collect(),
                 }
             })
         })

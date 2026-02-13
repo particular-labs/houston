@@ -54,11 +54,24 @@ pub fn scan_projects(state: State<'_, AppState>) -> Vec<workspace::ProjectInfo> 
     }
 
     let start = std::time::Instant::now();
+
+    // Read scan depth setting from DB
+    let max_depth: usize = {
+        let db = state.db.lock().unwrap();
+        db.get_setting("scan_max_depth")
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(workspace::DEFAULT_MAX_SCAN_DEPTH)
+            .max(2)
+            .min(10)
+    };
+
     let workspace_paths = state.workspace_paths.lock().unwrap().clone();
     let mut all_projects = Vec::new();
 
     for ws_path in &workspace_paths {
-        let projects = workspace::scan_directory(ws_path);
+        let projects = workspace::scan_directory(ws_path, max_depth);
         all_projects.extend(projects);
     }
 

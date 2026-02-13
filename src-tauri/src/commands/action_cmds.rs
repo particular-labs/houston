@@ -19,11 +19,34 @@ fn validate_path(path: &str) -> Result<std::path::PathBuf, String> {
 }
 
 #[tauri::command]
-pub fn open_in_terminal(path: String) -> Result<(), String> {
+pub fn open_in_terminal(state: State<'_, AppState>, path: String) -> Result<(), String> {
     let validated_path = validate_path(&path)?;
     let path = validated_path.to_string_lossy().to_string();
+
+    let preferred = {
+        let db = state.db.lock().unwrap();
+        db.get_setting("default_terminal").ok().flatten()
+    };
+    let terminal = preferred.as_deref().unwrap_or("auto");
+
     #[cfg(target_os = "macos")]
     {
+        if terminal != "auto" {
+            let result = match terminal {
+                "iTerm2" => Command::new("open").args(["-a", "iTerm", &path]).spawn(),
+                "Warp" => Command::new("open").args(["-a", "Warp", &path]).spawn(),
+                "Ghostty" => Command::new("open").args(["-a", "Ghostty", &path]).spawn(),
+                "kitty" => Command::new("kitty").args(["--directory", &path]).spawn(),
+                "Alacritty" => Command::new("alacritty").args(["--working-directory", &path]).spawn(),
+                "WezTerm" => Command::new("wezterm").args(["start", "--cwd", &path]).spawn(),
+                "Hyper" => Command::new("open").args(["-a", "Hyper", &path]).spawn(),
+                _ => Command::new("open").args(["-a", "Terminal", &path]).spawn(),
+            };
+            if result.is_ok() {
+                return Ok(());
+            }
+            // Fall through to default Terminal if preferred fails
+        }
         Command::new("open")
             .args(["-a", "Terminal", &path])
             .spawn()
@@ -75,7 +98,20 @@ pub fn open_in_editor(state: State<'_, AppState>, path: String) -> Result<(), St
     // If a specific editor is configured (not "auto"), try it first
     if let Some(ref editor) = preferred_editor {
         if editor != "auto" {
-            if Command::new(editor).arg(&path).spawn().is_ok() {
+            // Map tool names to binary commands
+            let binary = match editor.as_str() {
+                "VS Code" => "code",
+                "Cursor" => "cursor",
+                "Windsurf" => "windsurf",
+                "Zed" => "zed",
+                "Sublime Text" => "subl",
+                "Neovim" => "nvim",
+                "WebStorm" => "webstorm",
+                "PyCharm" => "pycharm",
+                "IntelliJ IDEA" => "idea",
+                other => other, // fallback: treat as binary name directly
+            };
+            if Command::new(binary).arg(&path).spawn().is_ok() {
                 return Ok(());
             }
             // Fall through to auto-detection if preferred editor fails
@@ -125,12 +161,35 @@ pub fn open_in_editor(state: State<'_, AppState>, path: String) -> Result<(), St
 }
 
 #[tauri::command]
-pub fn open_claude_code(path: String) -> Result<(), String> {
+pub fn open_in_ai_tool(state: State<'_, AppState>, path: String) -> Result<(), String> {
     let validated_path = validate_path(&path)?;
+    let path_str = validated_path.to_string_lossy().to_string();
 
-    Command::new("claude")
-        .current_dir(&validated_path)
-        .spawn()
-        .map_err(|e| format!("Failed to open Claude Code: {}", e))?;
-    Ok(())
+    let preferred = {
+        let db = state.db.lock().unwrap();
+        db.get_setting("default_ai_tool").ok().flatten()
+    };
+    let tool = preferred.as_deref().unwrap_or("auto");
+
+    let result = match tool {
+        "Claude Code" => Command::new("claude").current_dir(&validated_path).spawn(),
+        "OpenAI Codex CLI" => Command::new("codex").current_dir(&validated_path).spawn(),
+        "Gemini CLI" => Command::new("gemini").current_dir(&validated_path).spawn(),
+        "Aider" => Command::new("aider").current_dir(&validated_path).spawn(),
+        "Amp" => Command::new("amp").current_dir(&validated_path).spawn(),
+        "Amazon Q Developer" => Command::new("q").current_dir(&validated_path).spawn(),
+        "Cursor" => Command::new("cursor").arg(&path_str).spawn(),
+        "Windsurf" => Command::new("windsurf").arg(&path_str).spawn(),
+        _ => {
+            // "auto": try CLI tools in order
+            for bin in &["claude", "codex", "gemini", "aider", "amp"] {
+                if Command::new(bin).current_dir(&validated_path).spawn().is_ok() {
+                    return Ok(());
+                }
+            }
+            return Err("No AI coding tool found. Install one or set a preference in Settings.".into());
+        }
+    };
+
+    result.map(|_| ()).map_err(|e| format!("Failed to open AI tool: {}", e))
 }

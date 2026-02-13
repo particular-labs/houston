@@ -17,6 +17,8 @@ import {
   Gauge,
   Info,
   Sparkles,
+  FolderSearch,
+  Code2,
 } from "lucide-react";
 import { useAppStats } from "@/hooks/use-app-stats";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -31,6 +33,8 @@ import { appDataDir } from "@tauri-apps/api/path";
 import { useQuery } from "@tanstack/react-query";
 import { ReleaseNotesSection } from "./release-notes";
 import { useUpdateStore, type UpdateStatus } from "@/stores/update";
+import { commands } from "@/lib/commands";
+import { filterToolsByCategory } from "@/lib/tool-filters";
 
 function formatUptime(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -60,17 +64,6 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Cog }[] = [
   { id: "performance", label: "Performance", icon: Gauge },
   { id: "system", label: "System", icon: Info },
   { id: "releases", label: "Release Notes", icon: Sparkles },
-];
-
-const EDITOR_OPTIONS = [
-  { value: "auto", label: "Auto-detect" },
-  { value: "code", label: "VS Code" },
-  { value: "cursor", label: "Cursor" },
-  { value: "zed", label: "Zed" },
-  { value: "subl", label: "Sublime Text" },
-  { value: "nvim", label: "Neovim" },
-  { value: "vim", label: "Vim" },
-  { value: "emacs", label: "Emacs" },
 ];
 
 const STARTUP_SECTIONS = [
@@ -103,122 +96,207 @@ const TTL_SETTINGS = [
 // General Tab Components
 // =============================================================================
 
-function AppearanceCard() {
+function GeneralTabContent() {
   const { data: settings } = useSettings();
   const setSetting = useSetSetting();
+  const queryClient = useQueryClient();
+
   const theme = getSettingValue(settings, "theme", "dark");
 
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-        <Palette className="h-4 w-4 text-muted-foreground" />
-        Appearance
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => setSetting.mutate({ key: "theme", value: "dark" })}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
-            theme === "dark"
-              ? "border-primary bg-primary/10 text-foreground"
-              : "border-border bg-background text-muted-foreground hover:bg-accent"
-          )}
-        >
-          <Moon className="h-4 w-4" />
-          Dark
-        </button>
-        <button
-          onClick={() => setSetting.mutate({ key: "theme", value: "light" })}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
-            theme === "light"
-              ? "border-primary bg-primary/10 text-foreground"
-              : "border-border bg-background text-muted-foreground hover:bg-accent"
-          )}
-        >
-          <Sun className="h-4 w-4" />
-          Light
-        </button>
-      </div>
-    </div>
-  );
-}
+  const { data: aiToolsReport } = useQuery({
+    queryKey: ["ai-tools"],
+    queryFn: () => commands.getAiTools(),
+  });
 
-function GeneralCard() {
-  const { data: settings } = useSettings();
-  const setSetting = useSetSetting();
+  const terminalOptions = filterToolsByCategory(aiToolsReport?.tools, "terminal");
+  const editorOptions = filterToolsByCategory(aiToolsReport?.tools, "editor");
+  const aiToolOptions = filterToolsByCategory(aiToolsReport?.tools, "ai_tool");
 
+  const defaultTerminal = getSettingValue(settings, "default_terminal", "auto");
   const defaultEditor = getSettingValue(settings, "default_editor", "auto");
+  const defaultAiTool = getSettingValue(settings, "default_ai_tool", "auto");
   const startupSection = getSettingValue(settings, "startup_section", "dashboard");
   const autoScan = getSettingValue(settings, "auto_scan_on_startup", "true");
   const snarkyEnabled = getSettingValue(settings, "snarky_comments", "true");
+  const scanDepth = getSettingValue(settings, "scan_max_depth", "5");
+
+  const selectClass = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none";
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-        <Cog className="h-4 w-4 text-muted-foreground" />
-        Preferences
-      </div>
-      <div className="space-y-3">
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">
-            Default Editor
-          </label>
-          <select
-            value={defaultEditor}
-            onChange={(e) =>
-              setSetting.mutate({ key: "default_editor", value: e.target.value })
-            }
-            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-          >
-            {EDITOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+    <div className="rounded-lg border border-border bg-card">
+      {/* Appearance */}
+      <div className="border-b border-border p-4">
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <Palette className="h-3.5 w-3.5" />
+          Appearance
         </div>
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">
-            Startup Section
-          </label>
-          <select
-            value={startupSection}
-            onChange={(e) =>
-              setSetting.mutate({ key: "startup_section", value: e.target.value })
-            }
-            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
-          >
-            {STARTUP_SECTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-muted-foreground">
-            Auto-scan on startup
-          </label>
+        <div className="flex gap-2">
           <button
-            onClick={() =>
-              setSetting.mutate({
-                key: "auto_scan_on_startup",
-                value: autoScan === "true" ? "false" : "true",
-              })
-            }
+            onClick={() => setSetting.mutate({ key: "theme", value: "dark" })}
             className={cn(
-              "relative h-5 w-9 rounded-full transition-colors",
-              autoScan === "true" ? "bg-primary" : "bg-muted"
+              "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+              theme === "dark"
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-accent"
             )}
           >
-            <span
-              className={cn(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
-                autoScan === "true" ? "left-[18px]" : "left-0.5"
-              )}
-            />
+            <Moon className="h-4 w-4" />
+            Dark
           </button>
+          <button
+            onClick={() => setSetting.mutate({ key: "theme", value: "light" })}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+              theme === "light"
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <Sun className="h-4 w-4" />
+            Light
+          </button>
+        </div>
+      </div>
+
+      {/* Developer Tools */}
+      <div className="border-b border-border p-4">
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <Code2 className="h-3.5 w-3.5" />
+          Developer Tools
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              Default Terminal
+            </label>
+            <select
+              value={defaultTerminal}
+              onChange={(e) =>
+                setSetting.mutate({ key: "default_terminal", value: e.target.value })
+              }
+              className={selectClass}
+            >
+              <option value="auto">Auto-detect</option>
+              {terminalOptions.map((t) => (
+                <option key={t.name} value={t.name}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              Default Editor
+            </label>
+            <select
+              value={defaultEditor}
+              onChange={(e) =>
+                setSetting.mutate({ key: "default_editor", value: e.target.value })
+              }
+              className={selectClass}
+            >
+              <option value="auto">Auto-detect</option>
+              {editorOptions.map((t) => (
+                <option key={t.name} value={t.name}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              Default AI Tool
+            </label>
+            <select
+              value={defaultAiTool}
+              onChange={(e) =>
+                setSetting.mutate({ key: "default_ai_tool", value: e.target.value })
+              }
+              className={selectClass}
+            >
+              <option value="auto">Auto-detect</option>
+              {aiToolOptions.map((t) => (
+                <option key={t.name} value={t.name}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Workspace */}
+      <div className="border-b border-border p-4">
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <FolderSearch className="h-3.5 w-3.5" />
+          Workspace
+        </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-muted-foreground">
+                Startup Section
+              </label>
+              <select
+                value={startupSection}
+                onChange={(e) =>
+                  setSetting.mutate({ key: "startup_section", value: e.target.value })
+                }
+                className={selectClass}
+              >
+                {STARTUP_SECTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-muted-foreground">
+                Scan Depth
+              </label>
+              <select
+                value={scanDepth}
+                onChange={(e) => {
+                  setSetting.mutate({ key: "scan_max_depth", value: e.target.value });
+                  queryClient.invalidateQueries({ queryKey: ["projects"] });
+                }}
+                className={selectClass}
+              >
+                {[2, 3, 4, 5, 6, 7].map((n) => (
+                  <option key={n} value={String(n)}>
+                    {n} levels{n === 5 ? " (default)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-muted-foreground">
+              Auto-scan on startup
+            </label>
+            <button
+              onClick={() =>
+                setSetting.mutate({
+                  key: "auto_scan_on_startup",
+                  value: autoScan === "true" ? "false" : "true",
+                })
+              }
+              className={cn(
+                "relative h-5 w-9 rounded-full transition-colors",
+                autoScan === "true" ? "bg-primary" : "bg-muted"
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
+                  autoScan === "true" ? "left-[18px]" : "left-0.5"
+                )}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Miscellaneous */}
+      <div className="p-4">
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <Cog className="h-3.5 w-3.5" />
+          Miscellaneous
         </div>
         <div className="flex items-center justify-between">
           <label className="text-xs text-muted-foreground">
@@ -245,15 +323,6 @@ function GeneralCard() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function GeneralTabContent() {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <AppearanceCard />
-      <GeneralCard />
     </div>
   );
 }

@@ -4,6 +4,8 @@ use std::path::Path;
 
 use crate::registry::{detect, get_storage_dirs_by_type, is_project_dir, SKIP_DIRS};
 
+pub const DEFAULT_MAX_SCAN_DEPTH: usize = 5;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectHealthScore {
     pub grade: String,
@@ -255,8 +257,14 @@ fn make_project(path: &Path, group: &str, group_type: &str) -> Option<ProjectInf
     })
 }
 
-/// Scan immediate children of a group folder for projects.
-fn scan_group(dir: &Path, group_name: &str, projects: &mut Vec<ProjectInfo>) {
+/// Recursively scan a group folder for projects up to `max_depth`.
+fn scan_group(
+    dir: &Path,
+    group_name: &str,
+    projects: &mut Vec<ProjectInfo>,
+    current_depth: usize,
+    max_depth: usize,
+) {
     let entries = match fs::read_dir(dir) {
         Ok(e) => e,
         Err(_) => return,
@@ -272,8 +280,25 @@ fn scan_group(dir: &Path, group_name: &str, projects: &mut Vec<ProjectInfo>) {
             continue;
         }
 
-        if let Some(project) = make_project(&path, group_name, "folder") {
-            projects.push(project);
+        if is_project_dir(&path) {
+            // Check for monorepo
+            if let Some(pkg_paths) = detect_monorepo_packages(&path) {
+                if let Some(mut root_proj) = make_project(&path, group_name, "monorepo") {
+                    root_proj.is_monorepo_root = true;
+                    projects.push(root_proj);
+                }
+                for pkg_path in &pkg_paths {
+                    if let Some(pkg_proj) = make_project(pkg_path, group_name, "monorepo") {
+                        projects.push(pkg_proj);
+                    }
+                }
+            } else if let Some(project) = make_project(&path, group_name, "folder") {
+                projects.push(project);
+            }
+        } else if current_depth < max_depth {
+            // Not a project — recurse deeper with breadcrumb group name
+            let child_group = format!("{}/{}", group_name, dir_name);
+            scan_group(&path, &child_group, projects, current_depth + 1, max_depth);
         }
     }
 }
@@ -462,7 +487,7 @@ fn detect_monorepo_packages(root: &Path) -> Option<Vec<std::path::PathBuf>> {
     }
 }
 
-pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
+pub fn scan_directory(workspace_path: &str, max_depth: usize) -> Vec<ProjectInfo> {
     let mut projects = Vec::new();
     let workspace = Path::new(workspace_path);
 
@@ -508,7 +533,7 @@ pub fn scan_directory(workspace_path: &str) -> Vec<ProjectInfo> {
             }
         } else {
             // Not a project — treat as a group folder, scan its children
-            scan_group(&path, &dir_name, &mut projects);
+            scan_group(&path, &dir_name, &mut projects, 2, max_depth);
         }
     }
 

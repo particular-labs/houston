@@ -29,7 +29,8 @@ import {
 } from "@/hooks/use-workspaces";
 import { useGitStatus, useAllGitStatuses } from "@/hooks/use-git-status";
 import { useDevServers } from "@/hooks/use-dev-servers";
-import { useSetting, useSetSetting } from "@/hooks/use-settings";
+import { useSetting, useSetSetting, useSettings, getSettingValue } from "@/hooks/use-settings";
+import { getToolLabel } from "@/lib/tool-filters";
 import { commands, type ProjectInfo } from "@/lib/commands";
 import { useNavigationStore } from "@/stores/navigation";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -54,6 +55,8 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
   const { byProject } = useVersionMismatches();
   const hasMismatch = byProject.get(project.path)?.hasMismatch ?? false;
   const setDetailContext = useNavigationStore((s) => s.setDetailContext);
+  const { data: settings } = useSettings();
+  const aiToolLabel = getToolLabel(getSettingValue(settings, "default_ai_tool", "auto"), "AI Tool");
 
   const handleCardClick = () => {
     setDetailContext({
@@ -203,10 +206,10 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              commands.openClaudeCode(project.path);
+              commands.openInAiTool(project.path);
             }}
             className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="Open Claude Code"
+            title={`Open ${aiToolLabel}`}
           >
             <Sparkles className="h-3 w-3" />
           </button>
@@ -390,7 +393,10 @@ function GroupSummaryCard({ group }: { group: ProjectGroup }) {
       </div>
 
       <div className="mt-2">
-        <span className="max-w-[300px] truncate font-mono text-[10px] text-muted-foreground">
+        <span
+          className="block max-w-full truncate font-mono text-[10px] text-muted-foreground"
+          title={rootPath}
+        >
           {rootPath}
         </span>
       </div>

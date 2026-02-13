@@ -570,6 +570,7 @@ pub fn mock_ai_tools() -> AiToolsReport {
                 config_dir: Some("/Users/developer/.claude".to_string()),
                 has_ai: true,
                 ai_features: vec!["Agent".to_string(), "Chat".to_string(), "MCP".to_string()],
+                categories: vec!["ai_tool".to_string()],
             },
             AiToolInfo {
                 name: "Claude Desktop".to_string(),
@@ -590,6 +591,7 @@ pub fn mock_ai_tools() -> AiToolsReport {
                 config_dir: Some("/Users/developer/Library/Application Support/Claude".to_string()),
                 has_ai: true,
                 ai_features: vec!["Chat".to_string(), "MCP".to_string(), "Artifacts".to_string()],
+                categories: vec!["ai_tool".to_string()],
             },
             AiToolInfo {
                 name: "Cursor".to_string(),
@@ -610,6 +612,7 @@ pub fn mock_ai_tools() -> AiToolsReport {
                 config_dir: Some("/Users/developer/.cursor".to_string()),
                 has_ai: true,
                 ai_features: vec!["Autocomplete".to_string(), "Chat".to_string(), "Agent".to_string()],
+                categories: vec!["editor".to_string(), "ai_tool".to_string()],
             },
             AiToolInfo {
                 name: "GitHub Copilot CLI".to_string(),
@@ -630,6 +633,7 @@ pub fn mock_ai_tools() -> AiToolsReport {
                 config_dir: None,
                 has_ai: true,
                 ai_features: vec!["Shell suggestions".to_string(), "Explain".to_string()],
+                categories: vec!["ai_tool".to_string()],
             },
         ],
         scanned_at: chrono::Utc::now().to_rfc3339(),

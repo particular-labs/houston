@@ -49,7 +49,7 @@ pub fn run() {
             // Actions
             action_cmds::open_in_terminal,
             action_cmds::open_in_editor,
-            action_cmds::open_claude_code,
+            action_cmds::open_in_ai_tool,
             // Diagnostics
             diagnostics_cmds::get_diagnostics,
             diagnostics_cmds::refresh_diagnostics,

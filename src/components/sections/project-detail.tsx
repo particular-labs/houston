@@ -41,6 +41,8 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { CopyButton } from "@/components/shared/copy-button";
 import { InfoCardSkeleton } from "@/components/shared/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSettings, getSettingValue } from "@/hooks/use-settings";
+import { getToolLabel } from "@/lib/tool-filters";
 
 function formatUptime(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -142,6 +144,9 @@ interface ProjectDetailProps {
 }
 
 function QuickActions({ path }: { path: string }) {
+  const { data: settings } = useSettings();
+  const aiToolLabel = getToolLabel(getSettingValue(settings, "default_ai_tool", "auto"), "AI Tool");
+
   return (
     <div className="flex items-center gap-2">
       <button
@@ -161,12 +166,12 @@ function QuickActions({ path }: { path: string }) {
         Editor
       </button>
       <button
-        onClick={() => commands.openClaudeCode(path)}
+        onClick={() => commands.openInAiTool(path)}
         className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        title="Open Claude Code"
+        title={`Open ${aiToolLabel}`}
       >
         <Sparkles className="h-3.5 w-3.5" />
-        Claude Code
+        {aiToolLabel}
       </button>
     </div>
   );

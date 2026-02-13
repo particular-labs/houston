@@ -153,6 +153,7 @@ export interface AiToolInfo {
   config_dir: string | null;
   has_ai: boolean;
   ai_features: string[];
+  categories: string[];
 }
 
 export interface AiToolsReport {
@@ -411,8 +412,8 @@ export const commands = {
   openInTerminal: (path: string) =>
     invoke<void>("open_in_terminal", { path }),
   openInEditor: (path: string) => invoke<void>("open_in_editor", { path }),
-  openClaudeCode: (path: string) =>
-    invoke<void>("open_claude_code", { path }),
+  openInAiTool: (path: string) =>
+    invoke<void>("open_in_ai_tool", { path }),
 
   // AI Tools
   getAiTools: () => invoke<AiToolsReport>("get_ai_tools"),
